@@ -3,9 +3,9 @@ import numpy as np
 from numpy import random
 
 
-numMol = 5000
+numMol = 5
 bondLen = 2
-boxLength = 50
+boxLength = 10
 mod = 0.9
 
 class Particle():
@@ -86,7 +86,8 @@ def writeFile(fileName, particles, numMol):
         f.write(f"\n{numPar} atoms\n")
         f.write(f"{numPar} bonds\n")
         f.write("2 atom types\n")
-        f.write("2 bond types\n")
+#        f.write("3 atom types\n")
+        f.write("5 bond types\n")
 
         f.write("\n#Sim box size\n")
         f.write(f"-{boxLength} {boxLength} xlo xhi\n")
@@ -97,6 +98,7 @@ def writeFile(fileName, particles, numMol):
         f.write("#AtomID mass\n")
         f.write("1  1\n")
         f.write("2  1\n")
+#        f.write("3  1\n")
 
         f.write("\nAtoms\n")
         f.write("#atomID moleculeID atomType X Y Z\n")

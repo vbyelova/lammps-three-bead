@@ -1,11 +1,7 @@
 this is a map file
 
-1 edgeIDs
+0 edgeIDs
 3 equivalences
-
-EdgeIDs
-
-2
 
 InitiatorIDs
 
@@ -17,3 +13,7 @@ Equivalences
 1 1
 2 2
 3 3
+
+Constraints
+
+custom "rxnbond(v_benergy,frag1) > v_ebarrier" 
