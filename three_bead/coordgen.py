@@ -1,12 +1,12 @@
-# a python code to generate coordinates for the three-bead model
+# a python code to generate coordinates for N three bead molecules.
 import numpy as np
 from numpy import random
 
 
-numMol = 5
+numMol = 500
 bondLen = 2
-boxLength = 10
-mod = 0.9
+boxLength = 100
+mod = 0.9        # used to generate particles within a certain distance of boundary to avoid breaking
 
 class Particle():
     """ An object that has x,y,z coordinates and an atom ID/type to be assigned."""
@@ -62,13 +62,17 @@ def writeFile(fileName, particles, numMol):
         for n in range(0, 3):
             molIDs.append(molID)
         # configure whether the bond can break or not
+        # bond type 1 = sticker-hinge
+        # bond type 2 = sticker=sticker, used for unfolding
         bondTypes.append(1)
         bondTypes.append(1)
         bondTypes.append(2)
-        # define whether atom is at reaction point or not
+        # atom type 1 = sticker
+        # atom type 2 = hinge
         atomTypes.append(1)
         atomTypes.append(2)
         atomTypes.append(1)      
+        # create a list of which atoms are bonded to which
         bondedAtom1.append(bondCounter)
         bondedAtom2.append(bondCounter + 1)
         bondedAtom1.append(bondCounter + 1)

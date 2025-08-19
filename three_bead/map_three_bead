@@ -13,7 +13,3 @@ Equivalences
 1 1
 2 2
 3 3
-
-Constraints
-
-custom "rxnbond(v_benergy,frag1) > v_ebarrier" 
