@@ -1,0 +1,28 @@
+LAMMPS config file for N 3 bead models
+
+3 atoms
+3 bonds
+2 atom types
+5 bond types
+
+#Sim box size
+-5 5 xlo xhi
+-5 5 ylo yhi
+-5 5 zlo zhi
+
+Masses
+#AtomID mass
+1  1
+2  1
+
+Atoms
+#atomID moleculeID atomType X Y Z
+1 1 1 -2.6506572608606835 -1.7453168983859246 0.17791779814958808 
+2 1 2 -0.6506572608606835 -1.7453168983859246 0.17791779814958808 
+3 1 1 0.34934273913931646 -0.013266090817047438 0.17791779814958808 
+
+Bonds
+#bondID bondType particlesBonding
+1 1 1 2 
+2 1 2 3 
+3 2 1 3 

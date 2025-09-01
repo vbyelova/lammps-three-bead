@@ -1,0 +1,24 @@
+two three beads, both folded, post sticker-sticker intermolecular particlesBonding
+
+6 atoms           
+7 bonds          
+
+Types
+
+1 stic
+2 hinge
+3 stic
+4 stic
+5 hinge
+6 stic
+
+
+Bonds # ID type atom1 atom2
+
+1 1 1 2
+2 2 1 3
+3 1 2 3
+4 1 4 5
+5 2 4 6
+6 1 5 6
+7 3 3 4
