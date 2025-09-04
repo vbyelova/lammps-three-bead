@@ -139,7 +139,7 @@ variable bstic equal c_bondstic
 compute ke_atom all ke/atom
 variable ke atom c_ke_atom
 
-variable ebarrier equal 5 # energy barrier
+variable ebarrier equal 3 # energy barrier
 
 ##########################################
 

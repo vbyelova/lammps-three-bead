@@ -2,6 +2,7 @@
 
 
 import numpy as np
+import pickle
 import re
 
 from systemData import Nsteps, Nwrite, Npar
@@ -38,8 +39,7 @@ def readData(name, particles, numStep, everyN, numPar):
     # split up line and save into correct slot in array
                 for x in range(0, cols):
                     particles[num].properties[row, 0 + x] = line.rsplit()[x]
-#                print(particles[num].properties)
-#                input()
+
     # loop once all particles have been accounted for
                 if counter == numPar:
                     row += 1
@@ -47,11 +47,16 @@ def readData(name, particles, numStep, everyN, numPar):
                   
     return particles
 
+def dillParticles(particles):
+    with open("dillParticles.pkl", "wb") as f:
+        pickle.dump(particles,f)
+
 pattern = r"""\d+\s\d+\s\d+\s\d+\n""" # digits sandwiched by spaces
 
 particles = [Particle() for n in range(Npar)]
-
 readData("../output/dump.lammpstrj", particles, Nsteps, Nwrite, Npar)
+dillParticles(particles)
+
 
 
 # only use those where atom 1 and atom 3 both have 0 ssintra bonds

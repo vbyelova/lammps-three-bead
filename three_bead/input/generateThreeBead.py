@@ -2,10 +2,11 @@
 import numpy as np
 from numpy import random
 
+# modify these two for different volume fraction
+numMol = 1000
+boxLength = 30
 
-numMol = 1
 bondLen = 2
-boxLength = 5
 mod = 0.9        # used to generate particles within a certain distance of boundary to avoid breaking
 
 class Particle():
