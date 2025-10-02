@@ -1,15 +1,13 @@
+# python code to find the intra-particle separation of three-bead molecules
+# Victoria Byelova
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 
 from operator import add
-from parseOutputs import Particle
-from systemData import Nsteps, Nwrite
-
-class Molecule():
-    def __init__(self):
-        self.molNum = 0
-        self.separation = []
+from threeBeadClasses import Particle, Molecule
+from systemData import Nsteps, Nwrite, boxLength
 
 def checkUnfolded(particles):
     """Checks if a particle underwent unfolding during the simulation and adds to a list.
@@ -18,9 +16,18 @@ def checkUnfolded(particles):
     for num, p in enumerate(particles):
         if particles[num].properties[0][6] != particles[num].properties[-1][6]:
             unfoldedPar.append(particles[num])
-            print(particles[num].properties)
+            #print(particles[num].properties)
  
     return unfoldedPar
+
+def wrapping(dr, boxLength):
+    """Check if separation of two particles is within a boxlength and wraps the coordinates if 
+        such is the case."""
+    if dr >= 0.5 * boxLength:
+        dr -= boxLength
+    elif dr <= - 0.5 * boxLength:
+        dr += boxLength
+    return dr
 
 def getSep(particles):
     """Gets separation between sticker particles in three bead molecules at each time step."""
@@ -46,21 +53,24 @@ def getSep(particles):
 
     # get separation of sticker particles over time. double-check they are same molecule
     while m < len(molecules):
-        print("LOOP NUMBER ", loopNum)
+        #print("LOOP NUMBER ", loopNum)
         loopNum += 1
         if row == timesteps:
             break
         if particles[p].properties[row][5] != particles[p + 1].properties[row][5]:
             raise ValueError("Particles in the list have not been ordered according to their molecule")
         elif particles[p].properties[row][5] == particles[p + 1].properties[row][5]:
-            print("setting up")
+            #print("setting up")
             molecules[m].molNum = particles[p].properties[row][5]
-            print("mol num", molecules[m].molNum)
+            #print("mol num", molecules[m].molNum)
             dx = particles[p].properties[row][1] - particles[p + 1].properties[row][1]
             dy = particles[p].properties[row][2] - particles[p + 1].properties[row][2]
             dz = particles[p].properties[row][3] - particles[p + 1].properties[row][3]
+            dx = wrapping(dx, boxLength)
+            dy = wrapping(dy, boxLength)
+            dz = wrapping(dz, boxLength)
             molecules[m].separation[row] = np.sqrt(dx**2 + dy**2 + dz**2)
-            print("found sep", molecules[m].separation[row])
+            #print("found sep", molecules[m].separation[row])
             p += 2
             m += 1
             row += 1
@@ -70,24 +80,34 @@ def getSep(particles):
 
     return molecules
 
-def plotAvUnfold(molecules, Nsteps, Nwrite):
+def plotAvUnfold(molecules, Nsteps, Nwrite, boxLength):
+
+
+    
     timesteps = int(Nsteps/Nwrite)
     simTime = []
     for t in range(0, timesteps + 1):
         simTime.append(1000 * t)
     data = np.zeros((timesteps + 1, int(len(molecules))))
+
+
+    
     for num, m in enumerate(molecules):
     #    print("mol sep", m.separation)
         data[:, num] = m.separation.flatten()
+
     sumSep = np.sum(data, axis = 1)
     avSep = [sep / int(len(molecules)) for sep in sumSep]
 
     plt.plot(simTime, avSep)
+    plt.xlabel("time")
+    plt.ylabel("distance between stickers")
+    plt.title("Average separation of unfolded particles")
     return plt.show()
 
 with open("dillParticles.pkl", "rb") as f:
     particles = pickle.load(f)
 unfoldedPar = checkUnfolded(particles)
 molecules = getSep(unfoldedPar)
-data = plotAvUnfold(molecules, Nsteps, Nwrite)
+data = plotAvUnfold(molecules, Nsteps, Nwrite, boxLength)
 

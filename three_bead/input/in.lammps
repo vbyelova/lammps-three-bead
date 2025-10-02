@@ -5,12 +5,12 @@
 ##########################################
 
 # user input
-variable Nsteps         equal 100000
+variable Nsteps         equal 200000
 variable Nwrite         equal   1000
 variable equilTime      equal  20000
 variable seed           equal 349503
 variable tstep          equal  0.001
-variable stretch_force  equal     10
+variable boxLength      equal     lx
 
 ##########################################
 
@@ -18,7 +18,7 @@ variable stretch_force  equal     10
 units lj
 boundary p p p
 atom_style bond         # bead-spring polymer
-read_data network.in extra/bond/per/atom 2 extra/special/per/atom 3
+read_data network.in extra/bond/per/atom 1 extra/special/per/atom 3
 
 labelmap atom 1 stic 2 hinge
 
@@ -66,11 +66,11 @@ molecule post_oshuu intermoltemplate/pre_outstic_hinge_uu_inter.data
 # bond potentials
 
 bond_style harmonic
-bond_coeff 1 3 2        # sticker-hinge   (intra)
-bond_coeff 2 3 2        # sticker-sticker (intra)
-bond_coeff 3 3 2        # sticker-sticker (inter)
-bond_coeff 4 3 2        # sticker-hinge   (inter)
-bond_coeff 5 3 2        # hinge-hinge     (inter)
+bond_coeff 1 5 2        # sticker-hinge   (intra)
+bond_coeff 2 5 2        # sticker-sticker (intra)
+bond_coeff 3 5 2        # sticker-sticker (inter)
+bond_coeff 4 5 2        # sticker-hinge   (inter)
+bond_coeff 5 5 2        # hinge-hinge     (inter)
 
 
 ##########################################
@@ -90,9 +90,16 @@ compute ssinter all nbond/atom bond/type 3
 compute shinter all nbond/atom bond/type 4
 compute hhinter all nbond/atom bond/type 5
 
-#dump ssintrafile all custom 1000 output/ssintra.dump id type mol c_ssintra
-#dump_modify ssintrafile sort id
-#fix ssintrafile all print 1000 "${t} ${ssperatom}" file output/ssintra.dat screen no
+
+# keep track of bonds across the system
+
+compute totalbonds all count/type bond
+variable shintra equal c_totalbonds[1]
+variable ssintra equal c_totalbonds[2]
+variable ssinter equal c_totalbonds[3]
+variable shinter equal c_totalbonds[4]
+variable hhinter equal c_totalbonds[5]
+
 
 ##########################################
 
@@ -100,13 +107,10 @@ compute hhinter all nbond/atom bond/type 5
 
 variable t equal step*${tstep}
 
-#thermo_style custom step temp 
-thermo ${Nwrite}   # print thermodynamic info every Nwrite steps
+thermo ${Nwrite}
 
-#dump 1 all atom ${Nwrite} output/dump.lammpstrj
-#dump_modify 1 sort id
-dump 2 all custom ${Nwrite} ../output/dump.lammpstrj id x y z type mol c_ssintra
-dump_modify 2 sort id
+dump 1 all custom ${Nwrite} ../output/dump.lammpstrj id x y z type mol c_ssintra c_ssinter c_shinter c_hhinter
+dump_modify 1 sort id
 
 ##########################################
 
@@ -123,7 +127,7 @@ run ${equilTime}
 # pair interactions
 # shifted lj to be repulsive wca
 
-pair_style lj/cut 4.0
+pair_style lj/cut 5.0
 pair_modify shift yes
 
 pair_coeff * * 2.5 1.0
@@ -139,7 +143,7 @@ variable bstic equal c_bondstic
 compute ke_atom all ke/atom
 variable ke atom c_ke_atom
 
-variable ebarrier equal 3 # energy barrier
+variable ebarrier equal 5 # energy barrier
 
 ##########################################
 
@@ -148,46 +152,29 @@ variable ebarrier equal 3 # energy barrier
 # the only intramolecular reaction is the unfolding process
 # the intermolecular reactions are all bond formations between each atom type
 fix rxn all bond/react stabilization no reset_mol_ids no &
-  react unfolding all 1 3.0 4.5 folded unfolded intramoltemplate/three_bead.map molecule intra &
-  react ssfu all 1 2.0 2.4 pre_ssfu post_ssfu intermoltemplate/sticstic_inter.map molecule inter &
-  react ssff all 1 2.0 2.4 pre_ssff post_ssff intermoltemplate/sticstic_inter.map molecule inter &
-  react ssuu all 1 2.0 2.4 pre_ssuu post_ssuu intermoltemplate/sticstic_inter.map molecule inter &
-  react hhfu all 1 2.0 2.4 pre_hhfu post_hhfu intermoltemplate/hingehinge_inter.map molecule inter &
-  react hhff all 1 2.0 2.4 pre_hhff post_hhff intermoltemplate/hingehinge_inter.map molecule inter &
-  react hhuu all 1 2.0 2.4 pre_hhuu post_hhuu intermoltemplate/hingehinge_inter.map molecule inter &
-  react ishfu all 1 2.0 2.4 pre_ishfu post_ishfu intermoltemplate/instic_hinge_inter.map molecule inter &
-  react ishff all 1 2.0 2.4 pre_ishff post_ishff intermoltemplate/instic_hinge_inter.map molecule inter &
-  react ishuu all 1 2.0 2.4 pre_ishuu post_ishuu intermoltemplate/instic_hinge_inter.map molecule inter &
-  react oshfu all 1 2.0 2.4 pre_oshfu post_oshfu intermoltemplate/outstic_hinge_inter.map molecule inter &
-  react oshff all 1 2.0 2.4 pre_oshff post_oshff intermoltemplate/outstic_hinge_inter.map molecule inter &
-  react oshuu all 1 2.0 2.4 pre_oshuu post_oshuu intermoltemplate/outstic_hinge_inter.map molecule inter 
-
-# keep track of bonds across the system
-
-compute nbonds all count/type bond
-variable shintra equal c_nbonds[1]
-variable ssintra equal c_nbonds[2]
-variable ssinter equal c_nbonds[3]
-variable shinter equal c_nbonds[4]
-variable hhinter equal c_nbonds[5]
-
-# find separation of atoms for av. bond length
+  react unfolding all 1 2.0 10.0 folded unfolded intramoltemplate/three_bead.map molecule intra &
+  react ssfu all 1 2.0 3.0 pre_ssfu post_ssfu intermoltemplate/sticstic_inter.map molecule inter &
+  react ssff all 1 2.0 3.0 pre_ssff post_ssff intermoltemplate/sticstic_inter.map molecule inter &
+  react ssuu all 1 2.0 3.0 pre_ssuu post_ssuu intermoltemplate/sticstic_inter.map molecule inter &
+  react hhfu all 1 2.0 3.0 pre_hhfu post_hhfu intermoltemplate/hingehinge_inter.map molecule inter &
+  react hhff all 1 2.0 3.0 pre_hhff post_hhff intermoltemplate/hingehinge_inter.map molecule inter &
+  react hhuu all 1 2.0 3.0 pre_hhuu post_hhuu intermoltemplate/hingehinge_inter.map molecule inter &
+  react ishfu all 1 2.0 3.0 pre_ishfu post_ishfu intermoltemplate/instic_hinge_inter.map molecule inter &
+  react ishff all 1 2.0 3.0 pre_ishff post_ishff intermoltemplate/instic_hinge_inter.map molecule inter &
+  react ishuu all 1 2.0 3.0 pre_ishuu post_ishuu intermoltemplate/instic_hinge_inter.map molecule inter &
+  react oshfu all 1 2.0 3.0 pre_oshfu post_oshfu intermoltemplate/outstic_hinge_inter.map molecule inter &
+  react oshff all 1 2.0 3.0 pre_oshff post_oshff intermoltemplate/outstic_hinge_inter.map molecule inter &
+  react oshuu all 1 2.0 3.0 pre_oshuu post_oshuu intermoltemplate/outstic_hinge_inter.map molecule inter 
 
 
-group firstatom id 1
-group lastatom id 3
+fix nbondsfile all print 1000 "${t} ${ssintra} ${ssinter} ${shinter} ${hhinter}" file ../output/nbonds.dat screen no
 
-compute cfirst firstatom com
-compute clast lastatom com
-variable dx equal c_clast[1]-c_cfirst[1]
-variable dy equal c_clast[2]-c_cfirst[2]
-variable dz equal c_clast[3]-c_cfirst[3]
+#########################################
 
-variable separation equal sqrt(v_dx*v_dx+v_dy*v_dy+v_dz*v_dz)
+compute bondedatomid1 all property/local batom1
+compute bondedatomid2 all property/local batom2
 
-fix nbondsfile all print 1000 "${t} ${ssintra} ${ssinter} ${shinter} ${hhinter} " file ../output/nbonds.dat screen no
-
-
+dump bondedatoms all local ${Nwrite} ../output/bondedatoms.dat index c_bondedatomid1 c_bondedatomid2
 ##########################################
 
 #print some system info for analysis
@@ -195,9 +182,11 @@ fix nbondsfile all print 1000 "${t} ${ssintra} ${ssinter} ${shinter} ${hhinter} 
 variable Npar equal count(all)
 
 print """
+boxLength = ${boxLength}
 Npar = ${Npar}
 Nsteps = ${Nsteps} + ${equilTime}
 Nwrite = ${Nwrite}
+equilTime = ${equilTime}
 """ file ../analysis/systemData.py
 
 ##########################################

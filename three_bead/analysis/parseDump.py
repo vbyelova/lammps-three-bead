@@ -1,18 +1,12 @@
 # a python code to parse data output from lammps simulations
-
+# Victoria Byelova
 
 import numpy as np
 import pickle
 import re
 
 from systemData import Nsteps, Nwrite, Npar
-
-
-class Particle():
-    """ A  particle with id, type, molecule id and number of intramolecular
-        sticky bonds."""
-    def __init__(self):
-        self.properties = []
+from threeBeadClasses import Particle
 
 def readData(name, particles, numStep, everyN, numPar):
     """ A function to read in data from a lammps dump file and parse it into arrays."""
@@ -22,6 +16,8 @@ def readData(name, particles, numStep, everyN, numPar):
     counter = 0
     cols = 7
     timestep = int(numStep/everyN)
+
+    pattern = r"""\d+\s\d+\s\d+\s\d+\n""" # digits sandwiched by spaces
 
     # generate array of zeros to store data in each particle
     while p < numPar:
@@ -51,18 +47,8 @@ def dillParticles(particles):
     with open("dillParticles.pkl", "wb") as f:
         pickle.dump(particles,f)
 
-pattern = r"""\d+\s\d+\s\d+\s\d+\n""" # digits sandwiched by spaces
 
 particles = [Particle() for n in range(Npar)]
 readData("../output/dump.lammpstrj", particles, Nsteps, Nwrite, Npar)
 dillParticles(particles)
 
-
-
-# only use those where atom 1 and atom 3 both have 0 ssintra bonds
-# iterate every 3?
- 
-# find separation of these molecules
-
-# load in av. free energy of molecule
-# can i do it per each molecule? 

@@ -3,7 +3,7 @@ import numpy as np
 from numpy import random
 
 # modify these two for different volume fraction
-numMol = 1000
+numMol = 1215
 boxLength = 30
 
 bondLen = 2
@@ -12,20 +12,20 @@ mod = 0.9        # used to generate particles within a certain distance of bound
 class Particle():
     """ An object that has x,y,z coordinates and an atom ID/type to be assigned."""
     def __init__(self):
-        self.x = random.uniform(- mod * boxLength, mod * boxLength)
-        self.y = random.uniform(- mod * boxLength, mod * boxLength)
-        self.z = random.uniform(- mod * boxLength, mod * boxLength)
+        self.x = random.uniform(- mod * 0.5 * boxLength, mod * 0.5 * boxLength)
+        self.y = random.uniform(- mod * 0.5 * boxLength, mod * 0.5 * boxLength)
+        self.z = random.uniform(- mod * 0.5 * boxLength, mod *  0.5 * boxLength)
         self.atomType = 0
         self.atomID = 0
 
 def equilateral(bondLen, p1, p2, p3):
     """generate particles and position them in a triangle."""
 
-    p1.x = p2.x - bondLen # * 0.5
-    p1.y = p2.y # + np.sqrt(3)/2 * bondLen
+    p1.x = p2.x - bondLen * 0.5
+    p1.y = p2.y - np.sqrt(3)/2 * bondLen
     p1.z = p2.z
     p3.x = p2.x + 0.5 * bondLen
-    p3.y = p2.y + np.sqrt(3)/2 * bondLen
+    p3.y = p2.y - np.sqrt(3)/2 * bondLen
     p3.z = p2.z
 
     # type 1 = sticker / reactive
@@ -95,9 +95,9 @@ def writeFile(fileName, particles, numMol):
         f.write("5 bond types\n")
 
         f.write("\n#Sim box size\n")
-        f.write(f"-{boxLength} {boxLength} xlo xhi\n")
-        f.write(f"-{boxLength} {boxLength} ylo yhi\n")
-        f.write(f"-{boxLength} {boxLength} zlo zhi\n")
+        f.write(f"-{0.5 * boxLength} {0.5 * boxLength} xlo xhi\n")
+        f.write(f"-{0.5 * boxLength} {0.5 * boxLength} ylo yhi\n")
+        f.write(f"-{0.5 * boxLength} {0.5 * boxLength} zlo zhi\n")
 
         f.write("\nMasses\n")
         f.write("#AtomID mass\n")

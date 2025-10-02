@@ -185,7 +185,7 @@ See final C++ code for version with pivoting and with bi-directional edge traver
 
 		# Eliminate. Should work for all dimensions but only checked for dim<=3.
 		for row in range(1,matrix.shape[0]):
-			for col in range(0,row):
+			for col in range(0,min(row,matrix.shape[1])):
 				if matrix[row][col]:		# No need to eliminate if it is already zero.
 
 					# Differs from normal Gaussian elimination by multiplying the upper row by the (non-zero) element under the diagonal,

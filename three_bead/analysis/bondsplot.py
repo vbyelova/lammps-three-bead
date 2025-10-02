@@ -3,7 +3,7 @@ import pandas as pd
 
 columns = ["time", "ssintra", "ssinter", "shinter", "hhinter"]
 #time ssintra ssinter shinter hhinter
-df = pd.read_csv("../sparedata/nbonds.dat", skipinitialspace = True, delim_whitespace = True, usecols = columns)
+df = pd.read_csv("../output/nbonds.dat", skipinitialspace = True, delim_whitespace = True,  usecols = columns)
 print(df.keys())
 
 fig, axs = plt.subplots(2,2)
