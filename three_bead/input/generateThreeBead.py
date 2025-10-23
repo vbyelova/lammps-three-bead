@@ -3,11 +3,11 @@ import numpy as np
 from numpy import random
 
 # modify these two for different volume fraction
-numMol = 1215
-boxLength = 30
+numMol = 90
+boxLength = 10
 
-bondLen = 2
-mod = 0.9        # used to generate particles within a certain distance of boundary to avoid breaking
+bondLen = 1.112462048
+mod = 0.8      # used to generate particles within a certain distance of boundary to avoid breaking
 
 class Particle():
     """ An object that has x,y,z coordinates and an atom ID/type to be assigned."""
@@ -17,6 +17,15 @@ class Particle():
         self.z = random.uniform(- mod * 0.5 * boxLength, mod *  0.5 * boxLength)
         self.atomType = 0
         self.atomID = 0
+
+def wrapping(dr, boxLength):
+    """Check if separation of two particles is within a boxlength and wraps the coordinates if 
+        such is the case."""
+    if dr >= 0.5 * boxLength:
+        dr -= boxLength
+    elif dr <= - 0.5 * boxLength:
+        dr += boxLength
+    return dr
 
 def equilateral(bondLen, p1, p2, p3):
     """generate particles and position them in a triangle."""
@@ -28,13 +37,14 @@ def equilateral(bondLen, p1, p2, p3):
     p3.y = p2.y - np.sqrt(3)/2 * bondLen
     p3.z = p2.z
 
+
     # type 1 = sticker / reactive
     # type 2 = hinge / non-reactive
     p1.atomType = 1
     p2.atomType = 2
     p3.atomType = 1
 
-    return 
+    return
 
 
 def writeFile(fileName, particles, numMol):
@@ -121,5 +131,10 @@ counter = 0
 while counter < numMol:
     equilateral(bondLen, particles[counter], particles[counter + 1], particles[counter + 2])
     counter += 3
+
+for num,p in enumerate(particles):
+    wrapping(p.x, boxLength)
+    wrapping(p.y, boxLength)
+    wrapping(p.z, boxLength)
 
 writeFile("network.in", particles, numMol)

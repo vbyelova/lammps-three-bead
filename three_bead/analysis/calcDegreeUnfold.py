@@ -7,7 +7,7 @@ import pickle
 
 from operator import add
 from threeBeadClasses import Particle, Molecule
-from systemData import Nsteps, Nwrite, boxLength
+from systemData import Nsteps, Nwrite, equilTime, boxLength
 
 def checkUnfolded(particles):
     """Checks if a particle underwent unfolding during the simulation and adds to a list.
@@ -80,11 +80,11 @@ def getSep(particles):
 
     return molecules
 
-def plotAvUnfold(molecules, Nsteps, Nwrite, boxLength):
+def plotAvUnfold(molecules, Nsteps, Nwrite, equilTime, boxLength):
 
 
     
-    timesteps = int(Nsteps/Nwrite)
+    timesteps = int((Nsteps-equilTime)/Nwrite)
     simTime = []
     for t in range(0, timesteps + 1):
         simTime.append(1000 * t)
@@ -100,7 +100,7 @@ def plotAvUnfold(molecules, Nsteps, Nwrite, boxLength):
     avSep = [sep / int(len(molecules)) for sep in sumSep]
 
     plt.plot(simTime, avSep)
-    plt.xlabel("time")
+    plt.xlabel("timestep")
     plt.ylabel("distance between stickers")
     plt.title("Average separation of unfolded particles")
     return plt.show()
@@ -109,5 +109,5 @@ with open("dillParticles.pkl", "rb") as f:
     particles = pickle.load(f)
 unfoldedPar = checkUnfolded(particles)
 molecules = getSep(unfoldedPar)
-data = plotAvUnfold(molecules, Nsteps, Nwrite, boxLength)
+data = plotAvUnfold(molecules, Nsteps, Nwrite, equilTime, boxLength)
 

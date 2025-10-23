@@ -1,4 +1,4 @@
-#
+
 # Prototype for the percolation detection algorithm of Livragi et al., that is suitable for
 # periodic boundaries in off-lattice systems. Call as stand-alone for a test.
 #
@@ -6,9 +6,8 @@
 #
 # WARNING: Will sometimes fail as the Gaussian elimination has no pivoting.
 # This was corrected in the C++ version but not here (which had already served its purpose as a prototype).
-# 
+#
 
-# Code by Dr. David Head.
 
 #
 # Imports.
@@ -26,11 +25,6 @@ class percPerBC:
 		"""Initialise with the spatial / embedding dimension, i.e. the maximum dimension of the cluster."""
 		self._dim = dim
 
-		# Warning that this prototype is not robust, but unlikely will every correct for this - see C++ version for final algorithm.
-		print( """WARNING: spanningDimension() not robust as it lacks pivoting, and so can fail for some cases.
-Also does not traverse edges in both directions as it should.
-See final C++ code for version with pivoting and with bi-directional edge traversal.""" )
-	
 	def percolationDimension( self, V, E ):
 		"""Performs the percolation detection algorithm as per Livraghi et al., J. Chem. Theory Comput. 17(10), 6449-6457 (2021).
 		Returns the largest dimension of all components identified by the algorithm. If this equals the spatial/embedding dimension,
@@ -90,25 +84,29 @@ See final C++ code for version with pivoting and with bi-directional edge traver
 			Q.put( [v,np.zeros(self._dim,dtype="int")] )
 
 			while not Q.empty():
-				v, dist = Q.get()		# Also removes from the queue.
+				n, dist = Q.get()		# Also removes from the queue.
 
 				# Is this a copy of a vertex? If so, calculate 'distance' from original copy.
-				if v in self._visited:
-					perShift = self._distance[v] - dist
+				if n in self._visited:
+					perShift = self._distance[n] - dist
 
 					if percPerBC.isIndependent( B, perShift ):
 						B.append( perShift )
 
 				# First time we have encountered this vertex.
 				else:
-					self._visited.add( v )			# We have now visited this verted.
-					self._distance[v] = dist		# It was found at dist == [0,0,...]
-					C.add ( v )						# Also a member of this component.
+					self._visited.add( n )			# We have now visited this verted.
+					self._distance[n] = dist		# It was found at dist == [0,0,...]
+					C.add ( n )						# Also a member of this component.
 
 					# Breadth-first search: Add to queue.
 					for e in E:
-						if e[0] == v:
+
+						if e[0] == n:
 							Q.put( [ e[1], dist + np.array(e[2]) ] )
+
+						if e[1] == n:
+							Q.put( [ e[0], dist - np.array(e[2]) ] )
 			
 			# Dealt with all vertices. Add to the list of components.
 			self._components.append( [C,percPerBC.spanningDimension(B)] )
@@ -178,32 +176,60 @@ See final C++ code for version with pivoting and with bi-directional edge traver
 			return 0
 
 		# Assemble a matrix with the vectors as columns.
-		N = len(sVectors)
-		matrix = np.zeros( shape=[dim,N], dtype="int" )
-		for col in range(N):
-			matrix[:,col] = sVectors[col]
+		nVec = len(sVectors)
+		M = np.zeros( shape=[dim,nVec], dtype="int" )
+		for col in range(nVec):
+			M[:,col] = sVectors[col]
 
-		# Eliminate. Should work for all dimensions but only checked for dim<=3.
-		for row in range(1,matrix.shape[0]):
-			for col in range(0,min(row,matrix.shape[1])):
-				if matrix[row][col]:		# No need to eliminate if it is already zero.
+		# Remove any rows consisting entirely of zero values.
+		M = cls.removeZeroRows( M )
 
-					# Differs from normal Gaussian elimination by multiplying the upper row by the (non-zero) element under the diagonal,
-					# to preserve integer values throughout, so don't have to worry about floating point issues.
-					beta  = matrix[col][col]
-					alpha = matrix[row][col]
+		# Loop over all diagonal elements by column first, to eliminate values below this diagonal.
+		for col in range( min(M.shape[0],M.shape[1]) ):
 
-					matrix[col,:] *= alpha
-					matrix[row,:] *= beta
-					matrix[row,:] -= matrix[col,:]
+			# If diagonal element is zero, need some form of pivoting.
+			while( M[col,col]==0 ):
 
-		# Remove all zero rows.
-		zeroRows = np.where((matrix==0).all(axis=1))
-		for zeroRow in zeroRows:
-			matrix = np.delete( matrix, (zeroRow), axis=0 )
-		
-		# The spanning dimension is the number of rows remaining.
-		return matrix.shape[0]
+				# Find the column on the same row with the first non-zero element.
+				nZeroCol = col
+				while( M[col,nZeroCol]==0 ):
+					nZeroCol += 1
+					if nZeroCol == M.shape[1]:
+						break
+
+				if( nZeroCol < M.shape[1] ):
+
+					# If exists, swap columns so the diagonal is now non-zero.
+					for row in range(M.shape[0]):
+						swap = M[row,col]
+						M[row,col] = M[row,nZeroCol]
+						M[row,nZeroCol] = swap
+
+				else:
+					break
+
+			# Remove any new zero rows; check loop counter as matrix.shape[0] may have just decreased.
+			M = cls.removeZeroRows( M )
+			if col >= M.shape[0]:
+				break
+
+			# Now know 'beta' (see below) is not zero. Perform the elimination on all rows below the diagonal.
+			for row in range(col+1,M.shape[0]):
+				if( M[row,col] ):
+
+					alpha = M[row,col]
+					beta  = M[col,col]
+
+					for i in range(M.shape[1]):
+						M[col,i] *= alpha
+
+					for i in range(M.shape[1]):
+						M[row,i] = beta*M[row,i] - M[col,i]
+
+		# The spanning dimension is the number of rows that do not consist entirely of zeros.
+		M = cls.removeZeroRows( M )
+
+		return M.shape[0]
 
 	@classmethod
 	def isIndependent( cls, setOfVectors, testVector ):
@@ -216,6 +242,11 @@ See final C++ code for version with pivoting and with bi-directional edge traver
 
 		return cls.spanningDimension( setOfVectors ) != cls.spanningDimension( setOfVectors+[testVector] )
 
+	@classmethod
+	def removeZeroRows( cls, matrix ):
+		"""Returns a new matrix that consists only of the rows of the input matrix whose rows have at least one non-zero value."""
+		return np.delete( matrix, [ not matrix[row,].any() for row in range(matrix.shape[0]) ], 0 )
+	
 	@classmethod
 	def debugSpanningDimension( cls, verbose=False ):
 		"""Checks the spanningDimension() class method for a range of low-dimensional test cases."""
@@ -326,8 +357,8 @@ if __name__ == "__main__":
 		[ 4, 5, [0,0] ],
 		[ 7, 8, [0,0] ],
 		[ 1, 6, [0,0] ],
-		[ 3, 6, [1,0] ],	# Uncomment both of the last two lines to not percolate, even in one dimension.
-		[ 0, 5, [0,1] ]		# Uncomment this line only to percolate in only one dimension.
+		[ 3, 6, [1,0] ],	# Comment-out both of the last two lines to not percolate, even in one dimension.
+		[ 0, 5, [0,1] ]		# Comment-out this line only to percolate in only one dimension.
 	]
 
 	eg_2d = percPerBC( 2 )

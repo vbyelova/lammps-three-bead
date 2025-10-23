@@ -5,7 +5,7 @@ import numpy as np
 import pickle
 import re
 
-from systemData import Nsteps, Nwrite, Npar
+from systemData import Nsteps, Nwrite, equilTime, Npar
 from threeBeadClasses import Particle
 
 def readData(name, particles, numStep, everyN, numPar):
@@ -15,7 +15,8 @@ def readData(name, particles, numStep, everyN, numPar):
     row = 0
     counter = 0
     cols = 7
-    timestep = int(numStep/everyN)
+    timestep = int((numStep - equilTime)/everyN)
+    print(timestep)
 
     pattern = r"""\d+\s\d+\s\d+\s\d+\n""" # digits sandwiched by spaces
 

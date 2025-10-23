@@ -1,7 +1,7 @@
-two three beads, both folded, pre hinge-(inner)sticker intermolecular particlesBonding, outer-inner bond
+two three beads, both folded, post sticker-sticker intermolecular particlesBonding on the outside edge
 
 6 atoms           
-6 bonds          
+7 bonds          
 
 Types
 
@@ -21,4 +21,4 @@ Bonds # ID type atom1 atom2
 4 1 4 5
 5 2 4 6
 6 1 5 6
-
+7 3 1 6

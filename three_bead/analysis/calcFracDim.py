@@ -12,9 +12,16 @@ def boxCounting(particles, boxLength):
     """A function to count the number of particles in given box intervals. First the number of voxels and
         their sizes is decided. Then bins are made to represent the voxels and digitize decides which voxel
         each particle belongs to. The unique voxels are counted and added to a list."""
-    totalParticleCount = []
+    
+    smallestBox = 0
+
+    particleSize = 1.5 * 2**(1/6)
     halfLength = 0.5 * boxLength
-    numVoxels = [2**_ for _ in range(1, 7)]
+    
+    while 2**smallestBox < halfLength:
+        smallestBox += 1
+
+    numVoxels = [2**_ for _ in range(1, smallestBox)]
     voxelSizes = [boxLength / numDivs for numDivs in numVoxels] 
     totalUniqueVoxels = []
     print("initialised arrays")
@@ -57,6 +64,7 @@ def calcFractalDimension(totalUniqueVoxels):
     plt.plot(logInverseVoxelSizes, trendpoly(logInverseVoxelSizes))
     
     plt.show()
+    print(trend[0])
     return
 
 def sierpinskiTetrahedron():
@@ -86,9 +94,9 @@ def sierpinskiTetrahedron():
     p4 = [0.0, np.sqrt(3)/2, 0.0]
     particles = [p1, p2, p3, p4]
 
-    parShifted = []
 
-    for num, p in enumerate(particles):
+
+ #   for num, p in enumerate(particles):
         
 
 
@@ -112,9 +120,9 @@ def sierpinskiCube():
 # | |_|    |_|    |_| |
 # |___________________|
 
-#with open("dillParticles.pkl", "rb") as f:
-#    particles = pickle.load(f)
-#totalUniqueVoxels = boxCounting(particles, boxLength)
-#calcFractalDimension(totalUniqueVoxels)
+with open("dillParticles.pkl", "rb") as f:
+    particles = pickle.load(f)
+totalUniqueVoxels = boxCounting(particles, boxLength)
+calcFractalDimension(totalUniqueVoxels)
 
-sierpinskiTetrahedron()
+#sierpinskiTetrahedron()

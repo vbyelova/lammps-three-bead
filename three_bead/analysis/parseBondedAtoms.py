@@ -3,7 +3,7 @@ import pickle
 import re
 
 from collections import defaultdict
-from systemData import Nsteps, Nwrite, Npar, equilTime, boxLength
+from systemData import boxLength
 from threeBeadClasses import Particle
 
 def readTotalBonds(name):
@@ -35,6 +35,7 @@ def readBondedAtomData(name, particles, totalBonds):
     counter = 0
     
     bonds = defaultdict(list)
+    bondForces = defaultdict(list)
     #molecules = [Molecule() for _ in range(int(Npar / 3) + 1)]
     pattern = r"""\d+\s\d+\s\d+""" # digits sandwiched by spaces
     # generate array of zeros to store data in each particle
@@ -50,6 +51,8 @@ def readBondedAtomData(name, particles, totalBonds):
                 atom2 = int(line.rsplit()[2]) - 1
                 mol1 = int(particles[atom1].properties[row, 5] - 1)
                 mol2 = int(particles[atom2].properties[row, 5] - 1)
+                forces = [float(line.rsplit()[3]), float(line.rsplit()[4]), float(line.rsplit()[5])]
+                bondForces[row].append(forces)
                 if mol1 != mol2:
                     dx = particles[atom1].properties[row, 1] - particles[atom2].properties[row, 1]
                     dy = particles[atom1].properties[row, 2] - particles[atom2].properties[row, 2]
@@ -78,15 +81,16 @@ def readBondedAtomData(name, particles, totalBonds):
                     row += 1
                     if row >= len(totalBonds):
                         break
-
-
                 
-    return bonds
+    return bonds, bondForces
+
 
 totalBonds = readTotalBonds("../output/nbonds.dat")
 with open("dillParticles.pkl", "rb") as f:
     particles = pickle.load(f)
-bonds = readBondedAtomData("../output/bondedatoms.dat", particles, totalBonds)
-print(bonds)
+bondData = readBondedAtomData("../output/bondedatoms.dat", particles, totalBonds)
+bonds = bondData[0]
+bondForces = bondData[1]
+#print(bondForces)
 with open("intermolBondsPerTimestep.pkl", "wb") as f:
     pickle.dump(bonds, f)
