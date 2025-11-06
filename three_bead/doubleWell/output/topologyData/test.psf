@@ -1,0 +1,8 @@
+PSF
+
+        1 !NTITLE
+* test file to see if i can make a psf file
+
+0 !NATOM
+
+3 !NBOND: bonds
