@@ -6,20 +6,19 @@ import pickle
 # import code by Dr. David Head
 from percPerBC import percPerBC
 from systemData import Npar
+from parseForBondVis import totalBonds
 
-
-with open("intermolBondsPerTimestep.pkl", "rb") as f:
+with open("dillPercolation.pkl", "rb") as f:
     bonds = pickle.load(f)
 
-finalFrame = len(bonds)
 # vertices are the particles. this needs to be 1D.
 V = [n for n in range(0, Npar + 2)]
 
 # edges are the bonds. these are 3D where the first two values are
 # the vertices and the third value is [x, y, z] where 0 = not bonded
 # over boundary and 1 = bonded over boundary.
-
-E = [n[-3:] for n in bonds.get(finalFrame)]
+totalFrames = len(totalBonds)
+E = bonds.get(totalFrames - 1)
 
 def testPercPerBC():
     V = [n for n in range(0, 13)]

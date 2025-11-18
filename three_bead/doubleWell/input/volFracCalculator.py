@@ -1,9 +1,6 @@
 # input desired parameters to see number of particles required for a certain volume fraction.
-# comment out the functions that you will not use
 
 import numpy as np
-
-
 
 def whatNumMol():
     sigma = float(input("Enter a value for sigma: "))
@@ -25,12 +22,15 @@ def whatVolFrac():
 
     return print("Volume fraction of the system will be ", volFrac)
 
-option = input("Select an option:\n \
-                (1) Find number of particles for given volume fraction\n \
-                (2) Find volume fraction for given sigma and particle num.\n ")
+def inputCalculator():
+    option = input("Select an option:\n \
+                    (1) Find number of particles for given volume fraction\n \
+                    (2) Find volume fraction for given sigma and particle num.\n ")
 
-if option == "1":
-    whatNumMol()
+    if option == "1":
+        whatNumMol()
 
-elif option == "2":
-    whatVolFrac()
+    elif option == "2":
+        whatVolFrac()
+
+inputCalculator()

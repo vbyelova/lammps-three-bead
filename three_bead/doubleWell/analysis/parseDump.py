@@ -18,7 +18,7 @@ def readData(name, particles, numStep, everyN, numPar):
     timestep = int((numStep - equilTime)/everyN)
     print(timestep)
 
-    pattern = r"""\d+\s\d+\s\d+\s\d+\n""" # digits sandwiched by spaces
+    pattern = r"""\d+\s\d+\s\d+\n""" # digits sandwiched by spaces
 
     # generate array of zeros to store data in each particle
     while p < numPar:
@@ -46,10 +46,10 @@ def readData(name, particles, numStep, everyN, numPar):
 
 def dillParticles(particles):
     with open("dillParticles.pkl", "wb") as f:
-        pickle.dump(particles,f)
+        pickle.dump(particles, f)
 
 
 particles = [Particle() for n in range(Npar)]
-readData("../output/dump.lammpstrj", particles, Nsteps, Nwrite, Npar)
+checking = readData("../output/dump.lammpstrj", particles, Nsteps, Nwrite, Npar)
 dillParticles(particles)
 

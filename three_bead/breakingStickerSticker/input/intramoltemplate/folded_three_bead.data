@@ -1,0 +1,21 @@
+folded three bead
+
+3 atoms           
+3 bonds          
+1 fragments
+
+Types
+
+1 stic
+2 hinge
+3 stic
+
+Bonds # ID type atom1 atom2
+
+1 1 1 2
+2 2 1 3
+3 1 2 3
+
+Fragments
+
+1 1 3

@@ -4,19 +4,15 @@
 import numpy as np
 from numpy import random
 
-# modify these two for different volume fraction
-numMol = 10
-boxLength = 20
-
 bondLen = 1.112462048
-mod = 0.8      # used to generate particles within a certain distance of boundary to avoid breaking
+mod = 0.9    # used to generate particles within a certain distance of boundary to avoid breaking
 
 class Particle():
     """ An object that has x,y,z coordinates and an atom ID/type to be assigned."""
     def __init__(self):
-        self.x = random.uniform(- mod * 0.5 * boxLength, mod * 0.5 * boxLength)
-        self.y = random.uniform(- mod * 0.5 * boxLength, mod * 0.5 * boxLength)
-        self.z = random.uniform(- mod * 0.5 * boxLength, mod *  0.5 * boxLength)
+        self.x = 0
+        self.y = 0
+        self.z = 0
         self.atomType = 0
         self.atomID = 0
 
@@ -49,7 +45,7 @@ def equilateral(bondLen, p1, p2, p3):
     return
 
 
-def writeFile(fileName, particles, numMol):
+def writeFile(fileName, particles, numMol, boxLength):
 
     """ a function that allocates IDs to atoms and bonds then writes them to an output file."""
 
@@ -131,16 +127,26 @@ def writeFile(fileName, particles, numMol):
             counter += 1
             num += 3
 
-particles = [Particle() for _ in range(numMol * 3)]
 
-counter = 0
-while counter < numMol:
-    equilateral(bondLen, particles[counter], particles[counter + 1], particles[counter + 2])
-    counter += 3
+def generateThreeBead(numMol, boxLength):
+    particles = [Particle() for _ in range(numMol * 3)]
+    for p in particles:
+        p.x = random.uniform(- mod * 0.5 * boxLength, mod * 0.5 * boxLength)
+        p.y = random.uniform(- mod * 0.5 * boxLength, mod * 0.5 * boxLength)
+        p.z = random.uniform(- mod * 0.5 * boxLength, mod * 0.5 * boxLength)
+    print("initialised particles...")
 
-for num,p in enumerate(particles):
-    wrapping(p.x, boxLength)
-    wrapping(p.y, boxLength)
-    wrapping(p.z, boxLength)
+    counter = 0
+    while counter < numMol:
+        equilateral(bondLen, particles[counter], particles[counter + 1], particles[counter + 2])
+        counter += 3
+    print("configured into correct geometry...")
 
-writeFile("network.in", particles, numMol)
+    for num,p in enumerate(particles):
+        wrapping(p.x, boxLength)
+        wrapping(p.y, boxLength)
+        wrapping(p.z, boxLength)
+    print("wrapping around periodic box edges...")
+    print("writing to file...")
+    writeFile("network.in", particles, numMol, boxLength)
+    print("generated molecule input file!")

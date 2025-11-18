@@ -1,7 +1,7 @@
 
-boxLength = 20
-Npar = 30
-Nsteps = 100000 + 3000
+boxLength = 10
+Npar = 135
+Nsteps = 100000 + 30000
 Nwrite = 100
-equilTime = 3000
+equilTime = 30000
 
