@@ -1,32 +1,36 @@
 import pickle
 import re
 from collections import defaultdict
-from systemData import Npar, boxLength
 
-def totalBonds():
+from parseDump import * 
+
+def totalBonds(filename):
     totalBonds = []
     bondedAtoms = []
-    with open("../output/nbonds.dat", "r") as f:
+    with open(filename, "r") as f:
         next(f)
         for line in f.readlines():
             line = int(line[:-1])
             totalBonds.append(line)
 
+    print("counted total bonds across the system in each frame..")
     return totalBonds
 
-def boundaryCheck(val):
+def boundaryCheck(val, boxLength):
     if val < - 0.5 * boxLength or val > 0.5 * boxLength:
         return 1
     else:
         return 0
 
-def parseForPercolation(particles, totalBonds):
+def parseForPercolation(picklefile, filename, totalBonds, boxLength):
+    with open(picklefile, "rb") as f:
+        particles = pickle.load(f)
     percolatedBonds = defaultdict(list)
     totalFrames = len(totalBonds)
     bondCounter = 0
     frame = 0
     lineID = 0
-    with open("../output/bondedatoms.dat", "r") as f:
+    with open(filename, "r") as f:
         lines = f.readlines()
         while frame < totalFrames and lineID < len(lines):
             while bondCounter < totalBonds[frame]:
@@ -36,9 +40,9 @@ def parseForPercolation(particles, totalBonds):
                     dx = particles[atom1].properties[frame, 1] - particles[atom2].properties[frame, 1]
                     dy = particles[atom1].properties[frame, 2] - particles[atom2].properties[frame, 2]
                     dz = particles[atom1].properties[frame, 3] - particles[atom2].properties[frame, 3]
-                    overXbound = boundaryCheck(dx)
-                    overYbound = boundaryCheck(dy)
-                    overZbound = boundaryCheck(dz)
+                    overXbound = boundaryCheck(dx, boxLength)
+                    overYbound = boundaryCheck(dy, boxLength)
+                    overZbound = boundaryCheck(dz, boxLength)
                     percolatedBonds[frame].append([atom1, atom2, [overXbound, overYbound, overZbound]])
                     lineID += 1
                     bondCounter += 1
@@ -47,10 +51,11 @@ def parseForPercolation(particles, totalBonds):
             bondCounter = 0
             frame += 1
             
+    print("saved intermolecular bond information..")
     return percolatedBonds
 
 
-def parseBondsForVis(totalBonds):
+def parseBondsForVis(filename, totalBonds):
     frame = 0
     totalFrames = len(totalBonds)
 
@@ -58,7 +63,7 @@ def parseBondsForVis(totalBonds):
     bondCounter = 0
     bondedAtoms = []
 
-    with open("../output/bondedatoms.dat", "r") as f:
+    with open(filename, "r") as f:
         lines = f.readlines()
         while frame < totalFrames and lineID < len(lines):
             while bondCounter < totalBonds[frame]:
@@ -74,6 +79,7 @@ def parseBondsForVis(totalBonds):
             bondCounter = 0
             frame += 1
 
+    print("got a list of bonded particles for processing..")
     return bondedAtoms
 
 def writePSFfiles(totalBonds, bondedAtoms, Npar, dillParticles):
@@ -92,8 +98,7 @@ def writePSFfiles(totalBonds, bondedAtoms, Npar, dillParticles):
     charge = 0
     mass = 1
 
-
-    while frame < totalBonds[frame]:
+    while frame < len(totalBonds):
         with open(f"../output/psfFiles/datafile%05d.psf" % frame, "w") as f:
             f.write(f"  1 !NTITLE\n")
             f.write(f"PSF\n\n")
@@ -123,14 +128,52 @@ def writePSFfiles(totalBonds, bondedAtoms, Npar, dillParticles):
             f.write(f"    0 !NCRTERM: cross-terms\n\n")
         bCount = 0
         frame += 1
+    
+    print("psf files made for visualising bonds..")
+    return
+
+def bondStressTensor(filename, totalBonds):
+    frame = 0
+    totalFrames = len(totalBonds)
+    
+    lineID = 0
+    bondCounter = 0
+
+    with open(filename, "r") as f:
+        lines = f.readlines()
+        while frame < totalFrames and lineID < len(lines):
+            while bondCounter < totalBonds[frame]:
+                if re.search(r"\d+\s+\d+\s+\d+\d+\s+\d+\s+\d+", lines[lineID]):
+                    lineID += 1
+                    bondCounter += 1
+                else:
+                    lineID += 1
+            bondCounter = 0
+            frame += 1
             
-with open("dillParticles.pkl", "rb") as f:
-    particles = pickle.load(f)
 
-totalBonds = totalBonds()
-percolatedBonds = parseForPercolation(particles, totalBonds)
-bondedAtoms = parseBondsForVis(totalBonds)
-writePSFfiles(totalBonds, bondedAtoms, Npar, "dillParticles.pkl")
+def checkBondLength(unfoldBarriers, refoldBarrier, numRuns, Vf, numMol):
+    bondCounter = 0
+    frame = 0
+    conditions = f"unfold{unfoldBarriers[0]}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
+    filename = f"threeBead_Run0_{conditions}"
+    nBonds = totalBonds(f"../runs/{conditions}/{filename}/output/nbonds.dat")
 
-with open("dillPercolation.pkl", "wb") as f:
-    pickle.dump(percolatedBonds, f)
+    systemData = parseSystemData(f"../runs/{conditions}/{filename}/output/systemData.txt")
+    boxLength = systemData[0]
+    with open(f"../runs/{conditions}/{filename}/output/bonddistance.dat", "r") as f:
+        for line in f.readlines():
+            if re.search(r"^[1-9]*\s+\d+", line):
+                bondID = line.rsplit()[0]
+                bondLen = float(line.rsplit()[1])
+                if bondLen > 0.5 * boxLength:
+                    print(f"frame {frame}:bond length is too large at {bondLen} for bond {bondID}")
+                bondCounter += 1
+
+                if bondCounter == nBonds[frame]:
+                    bondCounter = 0
+                    frame += 1
+                    print(f"moving to frame  {frame}")
+        
+    return print("bond length check completed.")
+                        

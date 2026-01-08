@@ -1,7 +1,9 @@
 # a script to find the optimal coefficient values based on desired energy barrier height.
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.ticker import FormatStrFormatter
 from scipy.optimize import minimize, root, bisect
 
 def quartic(theta, theta0, k2, k3, k4):
@@ -86,7 +88,8 @@ def calcDoubleWellCoeffs(barrierToUnfold, barrierToRefold):
 
     for theta in thetas:
         energy.append(quartic(theta, theta0, k2, k3, k4))
-    
+
+
     print("Found optimal values!")
     print(f"Theta_0 = {theta0}\n")
     print(f"k2 = {k2}\n")
@@ -94,10 +97,15 @@ def calcDoubleWellCoeffs(barrierToUnfold, barrierToRefold):
     print(f"k4 = {k4}\n")
 
 
-    plt.plot(thetas, energy, color = "purple")
-    plt.xlabel("theta")
-    plt.ylabel("Potential energy")
-    plt.title("Asymmetric double well for two-state protein")
+    f, ax = plt.subplots(1)
+    ax.plot(thetas, energy, color = "red")
+    
+    #ax.xaxis.set_major_formatter(FormatStrFormatter('%g $\pi$'))
+    #ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base=0.5))
+
+    plt.xlabel("molecule angle \u03B8")
+    plt.ylabel("Potential energy (kT)")
+    plt.title("Single-step protein unfolding energy profile")
     plt.show()
 
     return theta0, k2, k3, k4

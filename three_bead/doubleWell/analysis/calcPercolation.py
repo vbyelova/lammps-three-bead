@@ -1,24 +1,42 @@
 # python code to calculate percolation of three-bead network.
 
-
 import pickle
-
+import matplotlib.pyplot as plt
 # import code by Dr. David Head
 from percPerBC import percPerBC
-from systemData import Npar
-from parseForBondVis import totalBonds
+from parseBonds import totalBonds
+from parseDump import *
 
-with open("dillPercolation.pkl", "rb") as f:
-    bonds = pickle.load(f)
+def finalFrame(percFile, totalBonds, Npar):
+    with open(percFile, "rb") as f:
+        bonds = pickle.load(f)
 
-# vertices are the particles. this needs to be 1D.
-V = [n for n in range(0, Npar + 2)]
+    V = [n for n in range(0, Npar + 2)]
 
-# edges are the bonds. these are 3D where the first two values are
-# the vertices and the third value is [x, y, z] where 0 = not bonded
-# over boundary and 1 = bonded over boundary.
-totalFrames = len(totalBonds)
-E = bonds.get(totalFrames - 1)
+
+    totalFrames = len(totalBonds)
+    E = bonds.get(totalFrames - 1)
+
+    system = percPerBC(3)
+    return print("Maximum spanning dimension of a component: {}".format(system.percolationDimension(V, E)))
+
+def allFrames(percFile, totalBonds, Npar):
+    dimsPercolated = []
+    with open(percFile, "rb") as f:
+        bonds = pickle.load(f)
+    
+    V = [n for n in range(0, Npar + 2)]
+
+    system = percPerBC(3)
+
+    totalFrames = len(totalBonds)
+    for val in range(0, totalFrames + 1):
+        E = bonds.get(val)
+        dimsPercolated.append(system.percolationDimension(V, E))
+
+    plt.plot(dimsPercolated, (range(0, totalFrames + 1)))
+    plt.show()
+    return
 
 def testPercPerBC():
     V = [n for n in range(0, 13)]
@@ -44,8 +62,4 @@ def testPercPerBC():
     print( "Maximum spanning dimension of a component: {}".format(system.percolationDimension(V,E) ) )
     print( system )
 
-system = percPerBC(3)
-print("Maximum spanning dimension of a component: {}".format(system.percolationDimension(V, E)))
-#print(system)
 
-#testPercPerBC()

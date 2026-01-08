@@ -5,14 +5,19 @@
 
 ##########################################
 
+variable conditions string langevin_10_unfold2_refold1.5_Vf0.07_mol3938
+variable filename file ${conditions}.txt
+
 # user input
-variable Nsteps         equal 100000
-variable Nwrite         equal   100
-variable equilTime      equal  0.3 * ${Nsteps}
-variable seed           equal 349503
+variable Nsteps         equal 500000
+variable Nwrite         equal   1000
+variable equilTime      equal  0.2 * ${Nsteps}
+variable seed           equal 324223
 variable tstep          equal  0.001
 variable boxLength      equal     lx
+variable commlength     equal 0.5 * lx
 variable r_cutoff       equal 1.112462048
+variable prob           equal 1
 ##########################################
 
 # configuration
@@ -20,7 +25,8 @@ units lj
 boundary p p p
 atom_style angle         # bead-spring polymer with bond and angle data
 
-read_data network.in extra/bond/per/atom 2 extra/special/per/atom 200
+read_data ../runs/${conditions}/${filename}/input/${filename}.in extra/bond/per/atom 2 extra/special/per/atom 200
+log ../runs/${conditions}/${filename}/input/log.lammps
 
 min_style fire
 ##########################################
@@ -30,12 +36,14 @@ min_style fire
 variable Npar equal count(all)
 
 print """
+[systemData]
 boxLength = ${boxLength}
 Npar = ${Npar}
 Nsteps = ${Nsteps} + ${equilTime}
 Nwrite = ${Nwrite}
 equilTime = ${equilTime}
-""" file ../analysis/systemData.py
+prob = ${prob}
+""" file ../runs/${conditions}/${filename}/output/systemData.txt
 
 ##########################################
 # bond potentials
@@ -45,6 +53,62 @@ bond_coeff 1 3 ${r_cutoff}   #intramolecular
 bond_coeff 2 3 ${r_cutoff}   #intermolecular
 
 ##########################################
+
+# print thermodynamic info
+
+variable t equal step*${tstep}
+
+thermo ${Nwrite}
+
+##########################################
+
+# equilibration parameters 
+
+fix nvelim all nve/limit 1.0 
+fix thermoequil all langevin   1 1 10 ${seed}  # langevin thermostat
+
+angle_style harmonic
+angle_coeff 1 1000 60
+
+comm_modify cutoff ${commlength}
+
+pair_style soft ${r_cutoff}
+pair_coeff * * 10
+
+# equilibration. first energy minimization and then equilibration
+
+minimize 1.0e-4 1.0e-6 1000 10000
+velocity all create 1 ${seed} mom yes rot yes dist gaussian
+
+dump 1 all custom ${Nwrite} ../runs/${conditions}/${filename}/output/dump.lammpstrj id x y z type mol
+dump_modify 1 sort id
+
+timestep 0.0001
+run ${equilTime}
+unfix nvelim
+unfix thermoequil
+
+fix pressequil all npt temp 1 1 10 iso 1 1 10
+run ${equilTime}
+unfix pressequil
+
+##########################################
+
+# main simulation parameters
+
+pair_style hybrid/overlay zero 5 lj/cut ${r_cutoff}
+
+pair_coeff * * lj/cut 1.0 1.0
+pair_coeff * * zero 5
+pair_modify shift yes
+
+# angle stuff
+
+include angleInfo.in
+compute angles all angle/local theta
+compute angle_pe all angle/local eng
+
+###########################################
 
 # count bonds per atom
 
@@ -57,7 +121,9 @@ compute totalbonds all count/type bond
 variable totalintra equal c_totalbonds[1]
 variable totalinter equal c_totalbonds[2]
 
-#########################################
+variable allbonds equal v_totalintra+v_totalinter
+
+##########################################
 
 # find bond id and forces
 
@@ -66,82 +132,37 @@ compute bondedatomid2 all property/local batom2
 compute btype all property/local btype
 
 compute bondforce all bond/local fx fy fz
- 
-##########################################
-# print thermodynamic info
+compute bonddir all bond/local dx dy dz
 
-variable t equal step*${tstep}
+compute bondlen all bond/local dist
 
-thermo ${Nwrite}
-
+variable vol equal lx*ly*lz
 ##########################################
 
-# add brownian dynamics for equilibration
+# add brownian dynamics and allow percolation
 
-fix nvelim all nve/limit 1.0
-fix thermoequil all langevin   0.7 1 1.0 ${seed}  # langevin thermostat
-
-angle_style harmonic
-angle_coeff 1 1000 60
+fix brownian1 all nve 
+fix brownian2 all langevin 1 1 10 ${seed}
+fix percolate all bond/create 1 1 1 ${r_cutoff} 2 iparam 2 1 jparam 2 1 molecule inter
 
 ##########################################
-
-# equilibration. first energy minimization and then equilibration
-
-comm_modify cutoff 6
-
-pair_style soft ${r_cutoff}
-pair_coeff * * 5
-
-
-minimize 1.0e-4 1.0e-6 1000 10000
-
-dump 1 all custom ${Nwrite} ../output/dump.lammpstrj id x y z type mol
-dump_modify 1 sort id
-
-timestep 0.0001
-run ${equilTime}
-unfix nvelim
-unfix thermoequil
-
-fix 1 all nve
-fix 2 all langevin 1 1 1.0 ${seed}
-
-##########################################
-
-# pair interactions
-# shifted lj to be repulsive wca
-
-pair_style hybrid/overlay zero 5 lj/cut ${r_cutoff}
-
-pair_coeff * * lj/cut 1.0 1.0
-pair_coeff * * zero 5
-pair_modify shift yes
-
-###########################################
-
-# angle stuff
-
-include angleInfo.in
-compute angles all angle/local theta
-compute angle_pe all angle/local eng
-
-fix percolate all bond/create 1 1 1 ${r_cutoff} 2 molecule inter iparam 2 1 jparam 2 1
-##########################################
-
 # simulate
 
 undump 1 
 reset_timestep 0
 
-dump 1 all custom ${Nwrite} ../output/dump.lammpstrj id x y z type mol
+dump 1 all custom ${Nwrite} ../runs/${conditions}/${filename}/output/dump.lammpstrj id x y z type mol
 dump_modify 1 sort id
 
-variable allbonds equal v_totalintra+v_totalinter
+dump vis all custom ${Nwrite} ../runs/${conditions}/${filename}/output/vis.lammpstrj id x y z
+fix nbondsfile all print 100 "${allbonds} " file ../runs/${conditions}/${filename}/output/nbonds.dat screen no
 
-fix nbondsfile all print 100 "${allbonds} " file ../output/nbonds.dat screen no
-dump bondedatoms all local ${Nwrite} ../output/bondedatoms.dat index c_bondedatomid1 c_bondedatomid2
-dump angles all local ${Nwrite} ../output/moleculeangles.dat index c_angles c_angle_pe
+dump bondedatoms all local ${Nwrite} ../runs/${conditions}/${filename}/output/bondedatoms.dat index c_bondedatomid1 c_bondedatomid2
+dump bondtypes all local ${Nwrite} ../runs/${conditions}/${filename}/output/bondtypes.dat index c_bondedatomid1 c_bondedatomid2
+dump bondforces all local ${Nwrite} ../runs/${conditions}/${filename}/output/bondforces.dat index c_bondforce[*] c_bonddir[*]
+dump angles all local ${Nwrite} ../runs/${conditions}/${filename}/output/moleculeangles.dat index c_angles c_angle_pe
+dump bonddistance all local ${Nwrite} ../runs/${conditions}/${filename}/output/bonddistance.dat index c_bondlen
+
 timestep ${tstep}
 neighbor 1 bin
 neigh_modify every 1 delay 2 check yes

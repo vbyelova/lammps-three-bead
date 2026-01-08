@@ -1,5 +1,4 @@
-# a python code to generate coordinates for N three bead molecules.
-# modified so that only sticker-hinge bonds exist for double-well potential.
+# a python code to generate coordinates for monomers
 
 import numpy as np
 from numpy import random
@@ -44,60 +43,49 @@ def equilateral(bondLen, p1, p2, p3):
 
     return
 
+def dimer(bondLen, p1, p2):
+    p1.x = p2.x + bondLen
+    p1.y = p2.y + bondLen
+    p1.z = p2.z + bondLen
+
+    return
 
 def writeFile(filename, particles, numMol, boxLength):
 
     """ a function that allocates IDs to atoms and bonds then writes them to an output file."""
 
     atomID = 1
-    bondID = 1
     bondCounter = 1
     molID = 1
     atomTypes = []
     molIDs = []
-    bondIDs = []
-    bondTypes = []
-    bondedAtom1 = []
-    bondedAtom2 = []
-    angles = list(range(1, numMol * 3 + 1))
+
+    #angles = list(range(1, numMol * 3 + 1))
 
     numPar = numMol * 3
 
     for num, p in enumerate(particles):
         p.atomID = atomID
-        bondIDs.append(bondID)
         atomID += 1
-        bondID += 1
-    
-    while bondCounter < numPar:
-        for n in range(0, 3):
+
+    while bondCounter < numPar + 1:
+        for n in range(0, 1):
             molIDs.append(molID)
-
-        bondTypes.append(1)
-        bondTypes.append(1)
-
-        atomTypes.append(1)
-        atomTypes.append(1)
+        bondCounter += 1
         atomTypes.append(1)      
         # create a list of which atoms are bonded to which
-        bondedAtom1.append(bondCounter)
-        bondedAtom2.append(bondCounter + 1)
-        bondedAtom1.append(bondCounter + 1)
-        bondedAtom2.append(bondCounter + 2)
         molID += 1
-        bondCounter += 3
 
     
     with open(filename, "w") as f:
 
-        f.write("LAMMPS config file for N 3 bead models\n")
+        f.write("LAMMPS config file for N monomers\n")
 
         f.write(f"\n{numPar} atoms\n")
-        f.write(f"{int(numPar * 2/3)} bonds\n")
-        f.write(f"{numMol} angles\n")
+        f.write(f"0 bonds\n")
+        f.write(f"0 angles\n")
         f.write("1 atom types\n")
         f.write("2 bond types\n")
-        f.write("1 angle types\n")
 
         f.write("\n#Sim box size\n")
         f.write(f"-{0.5 * boxLength} {0.5 * boxLength} xlo xhi\n")
@@ -113,34 +101,14 @@ def writeFile(filename, particles, numMol, boxLength):
         for num, p in enumerate(particles):
             f.write(f"{p.atomID} {molIDs[num]} {atomTypes[num]} {p.x} {p.y} {p.z} \n")
 
-        f.write("\nBonds\n")
-        f.write("#bondID bondType particlesBonding\n")
-        for num in range(0, int(len(particles)*(2/3))):
-            f.write(f"{bondIDs[num]} {bondTypes[num]} {bondedAtom1[num]} {bondedAtom2[num]} \n")
 
-        f.write("\nAngles\n")
-        f.write("#angleID angleType particle1 particle2 particle3\n")
-        num = 0
-        counter = 1
-        while num < numMol * 3:
-            f.write(f"{counter} 1 {angles[num]} {angles[num + 1]} {angles[num + 2]}\n")
-            counter += 1
-            num += 3
-
-
-def generateThreeBead(filename, numMol, boxLength):
+def generateMonomer(filename, numMol, boxLength):
     particles = [Particle() for _ in range(numMol * 3)]
     for p in particles:
         p.x = random.uniform(- mod * 0.5 * boxLength, mod * 0.5 * boxLength)
         p.y = random.uniform(- mod * 0.5 * boxLength, mod * 0.5 * boxLength)
         p.z = random.uniform(- mod * 0.5 * boxLength, mod * 0.5 * boxLength)
     print("initialised particles...")
-
-    counter = 0
-    while counter < numMol:
-        equilateral(bondLen, particles[counter], particles[counter + 1], particles[counter + 2])
-        counter += 3
-    print("configured into correct geometry...")
 
     for num,p in enumerate(particles):
         wrapping(p.x, boxLength)

@@ -1,0 +1,3 @@
+# angle coefficents as calculated 
+angle_style lepton no_offset 
+angle_coeff 1 1.047197551 'k1*theta^2-((2*3.141592654*k1*(1/3))*theta)+((1/9)*3.141592654^2)*k1; k1=1' 
