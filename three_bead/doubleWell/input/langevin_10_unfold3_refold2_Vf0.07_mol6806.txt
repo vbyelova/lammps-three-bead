@@ -1,3 +1,0 @@
-Run0_langevin_10_unfold3_refold2_Vf0.07_mol6806
-Run1_langevin_10_unfold3_refold2_Vf0.07_mol6806
-Run2_langevin_10_unfold3_refold2_Vf0.07_mol6806

@@ -4,44 +4,84 @@ import re
 import os
 from collections import defaultdict
 
-from threeBeadClasses import Particle
-from parseDump import *
-from parseBonds import *
+from modules.parseDump import *
+from modules.calcAngles import *
+from modules.calcFracDim import * 
+from modules.calcPercolation import *
+from modules.calcStressTensor import *
+from modules.threeBeadClasses import *
+from modules.parseRDF import *
 
 # let's get the system data first
-unfoldBarriers = 3
+unfoldBarriers = [3]
 refoldBarrier = 2
-numRuns = 3
+numRuns = 1
 Vf = 0.07
-numMol = 3938
+numMol = 253
 
-conditions = f"langevin_10_unfold{unfoldBarriers}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
-for n in range(0, numRuns):
-    filename = f"Run{n}_{conditions}"
-    systemData = parseSystemData(f"../runs/{conditions}/{filename}/output/systemData.txt")
 
-    boxLength, Npar, Nsteps, Nwrite, equilTime = systemData[0], systemData[1], systemData[2], systemData[3], systemData[4]
+for barrier in unfoldBarriers:
+    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
+    for runNum in range(0, numRuns):
+        filename = f"Run{runNum}_{conditions}"
+        systemData = parseSystemData(f"../runs/{conditions}/{filename}/output/systemData.txt")
 
-    # let's parse the dump file first and save it for later
+        boxLength, Npar, Nsteps, Nwrite, equilTime = systemData[0], systemData[1], systemData[2], systemData[3], systemData[4]
 
-    particles = [Particle() for n in range(Npar)]
-    checking = readData(f"../runs/{conditions}/{filename}/output/dump.lammpstrj", particles, Nsteps, Nwrite, Npar, equilTime)
-    dillParticles(f"../runs/{conditions}/{filename}/analysis/dillParticles.pkl", particles)
+        # let's parse the dump file first and save it for later
 
-# count up total bonds in the system, both inter and intramolecular
+        # make directories for data and figures
+        if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/figs"):
+            os.makedirs(f"../runs/{conditions}/{filename}/analysis/figs")
+        if not os.path.exists(f"../runs/{conditions}/averagedFigs"):
+            os.makedirs(f"../runs/{conditions}/averagedFigs")
+        if not os.path.exists(f"../runs/{conditions}/data"):
+            os.makedirs(f"../runs/{conditions}/data")
 
-#nBonds = totalBonds(f"../runs/{conditions}/{filename}/output/nbonds.dat")
 
-# process the bonds to later check if they are percolated or not
+        # check if particle trajectories have been parsed
+        if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl"):
+            particles = readData(f"../runs/{conditions}/{filename}/output/dump.lammpstrj", Nsteps, Nwrite, Npar, equilTime)
+            with open(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl", "wb") as f:
+                pickle.dump(particles, f)
+        if os.path.exists(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl"):
+            with open(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl", "rb") as f:
+                particles = pickle.load(f)
 
-#percolatedBonds = parseForPercolation(f"../runs/{conditions}/{filename}/analysis/dillParticles.pkl", f"../runs/{conditions}/{filename}/output/bondedatoms.dat", nBonds, boxLength)
+        # check if bonds have been counted yet
+        if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl"):
+            nBonds = totalBonds(f"../runs/{conditions}/{filename}/output/nbonds.dat")
+            with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "wb") as f:
+                pickle.dump(nBonds, f)
+        if os.path.exists(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl"):
+            with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
+                nBonds = pickle.load(f)
+        
+        # extract bond information e.g. bonded pairs, forces etc
+        if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl"):
+            bondInfo = parseBondInfo(barrier, refoldBarrier, runNum, Vf, numMol, nBonds)
+            with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "wb") as f:
+                pickle.dump(bondInfo, f)
+        if os.path.exists(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl"):
+            with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "rb") as f:
+                bondInfo = pickle.load(f)
 
-#with open(f"../runs/{conditions}/{filename}/analysis/dillPercolation.pkl", "wb") as f:
-#    pickle.dump(percolatedBonds, f)
-
-# get all the bonded atoms and then write psf files for visualisation
-
-#bondedAtoms = parseBondsForVis(f"../runs/{conditions}/{filename}/output/bondedatoms.dat", nBonds)
-#writePSFfiles(nBonds, bondedAtoms, Npar, "dillParticles.pkl")
-
+        # extract bonded pair information
+        if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percBonds.pkl"):    
+            bondedPairs = parseForPercolation(particles,f"../runs/{conditions}/{filename}/output/bondinfo.dat", nBonds, boxLength)
+            percolatedBonds, bondedAtoms = bondedPairs[0], bondedPairs[1]        
+            with open(f"../runs/{conditions}/{filename}/analysis/percBonds.pkl", "wb") as f:
+                pickle.dump(percolatedBonds, f)
+            with open(f"../runs/{conditions}/{filename}/analysis/bondedPairs.pkl", "wb") as f:
+                pickle.dump(bondedPairs, f)
+        if os.path.exists(f"../runs/{conditions}/{filename}/analysis/percBonds.pkl"):
+            with open(f"../runs/{conditions}/{filename}/analysis/percBonds.pkl", "rb") as f:
+                percolatedBonds = pickle.load(f)
+            with open(f"../runs/{conditions}/{filename}/analysis/bondedPairs.pkl", "rb") as f:
+                bondedPairs = pickle.load(f)
+        
+        parsePosRDF(barrier, refoldBarrier, runNum, Vf, numMol)
+    #calcStressTensor(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, bondInfo, boxLength)
+    #FrameByFramePerc(particles, f"../runs/{conditions}/{filename}/output/bondinfo.dat", f"../runs/{conditions}/{filename}/analysis/percinfo.txt",nBonds, boxLength)
+    #coordination(numMol, nBonds, bondInfo)
 print("done :D")

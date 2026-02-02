@@ -1,5 +1,0 @@
-threeBead_Run0_unfold2_refold1.5_Vf0.07_mol851
-threeBead_Run1_unfold2_refold1.5_Vf0.07_mol851
-threeBead_Run2_unfold2_refold1.5_Vf0.07_mol851
-threeBead_Run3_unfold2_refold1.5_Vf0.07_mol851
-threeBead_Run4_unfold2_refold1.5_Vf0.07_mol851
