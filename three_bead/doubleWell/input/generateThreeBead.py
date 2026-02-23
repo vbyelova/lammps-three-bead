@@ -5,7 +5,7 @@ import numpy as np
 from numpy import random
 
 bondLen = 1.112462048
-mod = 0.9    # used to generate particles within a certain distance of boundary to avoid breaking
+mod = 0.95    # used to generate particles within a certain distance of boundary to avoid breaking
 
 class Particle():
     """ An object that has x,y,z coordinates and an atom ID/type to be assigned."""
@@ -130,16 +130,30 @@ def writeFile(filename, particles, numMol, boxLength):
 
 def generateThreeBead(filename, numMol, boxLength):
     particles = [Particle() for _ in range(numMol * 3)]
-    for p in particles:
-        p.x = random.uniform(- mod * 0.5 * boxLength, mod * 0.5 * boxLength)
-        p.y = random.uniform(- mod * 0.5 * boxLength, mod * 0.5 * boxLength)
-        p.z = random.uniform(- mod * 0.5 * boxLength, mod * 0.5 * boxLength)
-    print("initialised particles...")
+    parPerSide = int(np.ceil(numMol ** (1 / 3)))
+    while parPerSide **3 < numMol:
+        parPerSide += 1
+    spacing = boxLength / (parPerSide + 1)
+    molCount = 0
+    parCount = 0
+    for i in range(parPerSide):
+        for j in range(parPerSide):
+            for k in range(parPerSide):
+                if molCount >= numMol:
+                    break
+                particles[parCount + 1].x = (i + 1) * spacing - 0.5 * boxLength
+                particles[parCount + 1].y = (j + 1) * spacing - 0.5 * boxLength
+                particles[parCount + 1].z = (k + 1) * spacing - 0.5 * boxLength
 
-    counter = 0
-    while counter < numMol:
-        equilateral(bondLen, particles[counter], particles[counter + 1], particles[counter + 2])
-        counter += 3
+                equilateral(bondLen, particles[parCount],
+                            particles[parCount + 1], particles[parCount + 2])
+    
+                molCount += 1
+                parCount += 3
+            if molCount >= numMol:
+                break
+        if molCount >= numMol:
+            break
     print("configured into correct geometry...")
 
     for num,p in enumerate(particles):
@@ -150,3 +164,4 @@ def generateThreeBead(filename, numMol, boxLength):
     print("writing to file...")
     writeFile(filename, particles, numMol, boxLength)
     print("generated molecule input file!")
+

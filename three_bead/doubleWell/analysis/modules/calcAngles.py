@@ -5,12 +5,12 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 from .parseDump import *
 
-def calcAngles(barrier, refoldBarrier, Vf, numMol):
+def calcAngles(barrier, refoldBarrier, runNum, vf, numMol):
     """saves angles of three bead molecules in each simulation frame and returns
         the final frame."""
 
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
-    filename = f"Run0_{conditions}"
+    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+    filename = f"Run{runNum}_{conditions}"
     systemData = parseSystemData(f"../runs/{conditions}/{filename}/output/systemData.txt")
     boxLength, Npar, Nsteps, Nwrite, equilTime = systemData[0], systemData[1], systemData[2], systemData[3], systemData[4]
     
@@ -35,7 +35,7 @@ def calcAngles(barrier, refoldBarrier, Vf, numMol):
     
     return angles
 
-def unfoldedMolecules(barrier, refoldBarrier, runNum, Vf, numMol, angles):
+def unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles):
     """makes a list of molecules that are unfolded (have an angle of 120-180)"""
     # let's say a particle is unfolded if it's around 120-180 degrees
     # based on our bimodal distribution
@@ -50,32 +50,21 @@ def unfoldedMolecules(barrier, refoldBarrier, runNum, Vf, numMol, angles):
 
 
 
-def bimodalAngle(barrier, refoldBarrier, runNum, Vf, numMol):
+def bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol):
     """plots a histogram of the final angles of the molecules in the system."""
 
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
+    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
     filename = f"Run{runNum}_{conditions}"
-    angles = calcAngles(3, refoldBarrier, Vf, numMol)
+    angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol)
     finalFrameAngles = angles[int(len(angles)-1)]
     hist, bins = np.histogram(finalFrameAngles, bins = 30)
     logbins = np.logspace(np.log10(bins[0]),np.log10(bins[-1]),len(bins))
     plt.hist(finalFrameAngles, bins = logbins, color = "pink")
-    plt.legend([f"Vf = {Vf}\nunfolding barrier  = {barrier} kT\n num. mol. = {numMol}"])
+    plt.legend([f"vf = {vf}\nunfolding barrier  = {barrier} kT\n num. mol. = {numMol}"])
     plt.xlabel("molecule angle \u03B8")
     plt.ylabel("log(number of molecules)")
     plt.title("Bimodal distribution of folded and unfolded molecules")
     plt.savefig(f"../runs/{conditions}/{filename}/analysis/figs/bimodalAngleDist")
-
+    plt.close()
     return
 
-def unfoldingRDF(barrier, refoldBarrier, runNum, Vf, numMol, boxLength):
-    """find where unfolding is happening through a discrete radial distribution function."""
-
-    # for each molecule:
-    #   find how many unfolded mol are dr away and divide that number by volume of shell
-    #   divide that by the number of mol in sim / volume of box
-    #   repeat for multiple dr
-    # plot
-
-def unfoldingWithPerc(barrier, refoldBarrier, runNum, Vf, numMol, nBonds):
-    """plots number of unfolded particles against number of bonds in system"""

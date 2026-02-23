@@ -6,10 +6,10 @@ from collections import defaultdict
 from .parseDump import *
 from .threeBeadClasses import *
 
-def plotForceMagnitude(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, bondInfo):
+def plotForceMagnitude(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInfo):
     """plots histograms of forces in the final frame of the simulation
         in each direction as well as a histogram of the force magnitudes."""
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
+    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
     filename = f"Run{runNum}_{conditions}"
     forceMagnitudes = []
     totalfx = []
@@ -46,7 +46,7 @@ def plotForceMagnitude(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, bondI
     plt.tight_layout()
     plt.show()
 
-def calcStressTensor(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, bondInfo, boxLength):
+def calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInfo, boxLength):
     stressTensor = np.zeros((3, 3))
     avStressTensors = []
     bondCounter = 0
@@ -66,8 +66,39 @@ def calcStressTensor(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, bondInf
             avStressTensors.append(stressTensor)
             bondCounter = 0
             frame += 1
+    return avStressTensors
 
-    print(avStressTensors)
+def calcPressure(barrier, refoldBarrier, runNum, vf, numMol, nBonds, avStressTensors):
+    pressure = []
 
-    return
+    frames = [n for n in range(0, int(len(nBonds)))]
+    for tensor in avStressTensors:
+        pressure.append(np.trace(tensor) / 3)
+    
+    plt.plot(frames[:-2], pressure[:-2])
+    plt.xlabel("simulation frame")
+    plt.ylabel("pressure")
+    plt.show()
+    
 
+def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, nBonds, avStressTensors):
+    pressure = defaultdict(list)
+    pressureErr = defaultdict(list)
+    avPressure = {}
+    avPressureErr = []
+    for barrier in unfoldBarriers:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+
+        for runNum in range(numRuns):
+            filename = f"Run{runNum}_{conditions}"
+            frames = [n for n in range(0, int(len(nBonds)))]
+            for tensor in avStressTensors:
+                press = np.trace(tensor) / 3
+                pressure[barrier].append(press)
+        
+        avPressure[barrier] = sum(pressure[barrier]) / numRuns
+        for val in avPressure[barrier]:
+            pressureErr[barrier].append(val - avPressure[barrier] ** 2)
+
+
+    plt.plot

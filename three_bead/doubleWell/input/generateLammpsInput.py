@@ -4,13 +4,13 @@ import numpy as np
 from numpy import random
 from random import randint
 
-def generateLammpsInput(conditions, filename, boxLength, Nmol, prob, bondsPerAtom):
-    Nsteps = 700000 
+def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom):
+    Nsteps = 200000 
     equilTime = 120000
     r_cutoff = 1.112462048
     seed = randint(100000, 999999)
     comm = 10
-    Npar = Nmol * 3
+    numPar = numMol * 3
     tstep = 0.001
     halfLength = int(0.5 * boxLength)
 
@@ -19,8 +19,8 @@ def generateLammpsInput(conditions, filename, boxLength, Nmol, prob, bondsPerAto
     with open(f"../runs/{conditions}/{filename}/output/systemData.txt", "w") as f:
         f.write(f"[systemData]\n")
         f.write(f"boxLength = {boxLength}\n")
-        f.write(f"Npar = {Npar}\n")
-        f.write(f"Nsteps = {Nsteps} + {equilTime}\n")
+        f.write(f"Npar = {numPar}\n")
+        f.write(f"Nsteps = {Nsteps}\n")
         f.write("Nwrite = 1000\n")
         f.write(f"equilTime = {equilTime}\n")
         f.write(f"prob = {prob}\n")

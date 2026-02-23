@@ -4,8 +4,11 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <set>
+#include <array>
+#include "percPerBC.h"
 
-std::list<int> loadPar(const std::string& fileName)
+std::set<int> loadPar(const std::string& fileName)
 {
     // load in number of particles
     int numPar {};
@@ -32,44 +35,93 @@ std::list<int> loadPar(const std::string& fileName)
     std::set<int> totalParticles {};
     for(int i = 1; i <= numPar; i++)
     {
-        totalParticles.push_back(i);
+        totalParticles.insert(i);
     }
 
     std::cout << std::endl;
+    fileInput.close();
     return totalParticles;
 
 }
 
 
-
 struct Frame
 {
     int frameNumber;
-    std::map<std::array<int,2>, std::array<int,3>> data;
+    std::map<std::array<int, 2>, std::array<int, 3>> data;
 };
     std::vector<Frame> loadPercVals(const std::string& fileName)
     {
+        int numBonds;
         std::vector<Frame> frames;
         std::ifstream fileInput(fileName);
         std::string line;
-        Frame* currentFrame = nullptr;
 
-        while getline((fileInput, line))
+
+        while (getline(fileInput, line))
         {
-            if (line.find("frame") != std::string::npos)
+            Frame currentFrame;
+            currentFrame.frameNumber = std::stoi(line);
+
+            if (!std::getline(fileInput, line)) break;
+            numBonds = std::stoi(line);
+
+            for (int i = 0; i < numBonds; i++ )
             {
-                if (currentFrame != nullptr)
-                {
-                    frames.push_back(*currentFrame);
-                    delete currentFrame;
-                }
+                std::array<int, 2> bondedAtoms;
+                std::array<int, 3> percAcross;
 
-                currentFrame = new Frame();
-                size_t pos = line.find("frame");
+                if (!std::getline(fileInput, line)) break;
+                bondedAtoms[0] = std::stoi(line);
 
-                frameNumber = std::stoi(line.substr(pos + 1));
-                frames.pushback(frameNumber);
+                if (!std::getline(fileInput, line)) break;
+                bondedAtoms[1] = std::stoi(line);
+
+                if (!std::getline(fileInput, line)) break;
+                percAcross[0] = std::stoi(line);
+
+                if (!std::getline(fileInput, line)) break;
+                percAcross[1] = std::stoi(line);
+
+                if (!std::getline(fileInput, line)) break;
+                percAcross[2] = std::stoi(line);
+
+                currentFrame.data[bondedAtoms] = percAcross;
             }
+            frames.push_back(currentFrame);
         }
-
+        fileInput.close();
+        return frames;
     }
+
+
+std::set<int> testAddingData3D()
+{
+    percPerBC<3> test3D;
+    std::set<int> vectors {};
+    for (int i = 0; i <= 13; i++ )
+    {
+        vectors.insert(i);
+    }
+
+    std::set<int> totalParticles;
+
+    std::vector<Frame> percVals;
+    percVals = loadPercVals("testfile.txt");
+
+    std::ofstream file;
+    std::set<int> percDimSet;
+    file.open("percVals.txt");
+
+    for (auto& frame : percVals)
+    {
+        std::map< std::array<int, 2>, std::array<int, 3>> frameData = frame.data;
+        int percDim = test3D.percolationDimension(vectors, frame.data);
+        std::cout << percDim << std::endl;
+        file << percDim << std::endl;
+        percDimSet.insert(percDim);
+    }
+
+    file.close();
+    return percDimSet;
+}

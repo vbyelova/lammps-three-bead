@@ -17,7 +17,7 @@ def parseSystemData(name):
     config.read(name)
     boxLength = int(config.get("systemData", "boxLength"))
     Npar = int(config.get("systemData", "Npar"))
-    Nsteps = eval(config.get("systemData", "Nsteps"))
+    Nsteps = int(config.get("systemData", "Nsteps"))
     Nwrite = int(config.get("systemData", "Nwrite"))
     equilTime = int(config.get("systemData", "equilTime"))
     return boxLength, Npar, Nsteps, Nwrite, equilTime
@@ -29,7 +29,7 @@ def readData(name, numStep, everyN, numPar, equilTime):
     frame = 0
     counter = 0
     cols = 6
-    timestep = int((numStep - equilTime)/everyN)
+    timestep = int(numStep / everyN)
 
     pattern = r"""\d+\s\d+\s\d+\n""" # digits sandwiched by spaces
 
@@ -57,28 +57,24 @@ def readData(name, numStep, everyN, numPar, equilTime):
                     counter = 0
                   
     print("dump file processed..")
-    print([particles[0].properties[0]])
     return particles
 
-def parseBondInfo(barrier, refoldBarrier, runNum, Vf, numMol, nBonds):
+def parseBondInfo(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, boxLength):
     """gets stress tensor information for each bond as fx, fy, fz, dx, dy and dz."""
     conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
     filename = f"Run{runNum}_{conditions}"
-    systemData = parseSystemData(f"../runs/{conditions}/{filename}/output/systemData.txt")
-    boxLength, Npar, Nsteps, Nwrite, equilTime = systemData[0], systemData[1], systemData[2], systemData[3], systemData[4]
-
     vol = boxLength ** 3
 
     frame = 0
     bondCounter = 0
     bondInfo = defaultdict(list)
 
+    for x in range(0, int(len(nBonds))):
+        bondInfo[x] = [Bond() for x in range(nBonds[x])]
+    
     print("saving bond force and direction.. ")
     with open(f"../runs/{conditions}/{filename}/output/bondinfo.dat", "r") as f:
         for line in f:
-            if bondCounter == 0:
-                bondInfo[frame] = [Bond() for n in range(nBonds[frame])]
-
             if re.search(r"\d+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+", line):
                 #print("matched")
                 lineData = line.rsplit()
@@ -133,7 +129,9 @@ def totalBonds(filename):
 
 def boundaryCheck(val, boxLength):
     """checks if a coordinate is crossing a boundary condition and wraps around the box if it is."""
-    if val < - 0.5 * boxLength or val > 0.5 * boxLength:
+    if val < - 0.5 * boxLength:
+        return -1
+    if val > 0.5 * boxLength:
         return 1
     else:
         return 0
@@ -168,31 +166,40 @@ def parseForPercolation(particles, filename, nBonds, boxLength):
 
 def FrameByFramePerc(particles, filename, writeto, nBonds, boxLength):
     """finds bonded particles and saves them and over what boundary they are bonded. formatted
-        for use in a c++ file."""
+        for one value per line, for easier parsing in c++."""
     totalFrames = len(nBonds)
     bondCounter = 0
     frame = 0
     with open(filename, "r") as f:
         with open(writeto, "w") as w:
-            w.write(f"frame 0\n")
+            w.write(f"{frame}\n")
+            w.write(f"{nBonds[frame]}\n")
             for line in f:
                 if re.search(r"\d+\s+\d+\s+\d+", line):
                     info = line.rsplit()
-                    atom1 = int(info[0]) - 1
-                    atom2 = int(info[1]) - 1
-                    print(atom1, atom2)
+                    atom1 = int(info[1]) - 1
+                    atom2 = int(info[2]) - 1
+                    #print(atom1, atom2)
                     dx = particles[atom1].properties[frame, 1] - particles[atom2].properties[frame, 1]
                     dy = particles[atom1].properties[frame, 2] - particles[atom2].properties[frame, 2]
                     dz = particles[atom1].properties[frame, 3] - particles[atom2].properties[frame, 3]
                     overXbound = boundaryCheck(dx, boxLength)
                     overYbound = boundaryCheck(dy, boxLength)
                     overZbound = boundaryCheck(dz, boxLength)                
-                    w.write(f"{atom1} {atom2} {overXbound} {overYbound} {overZbound}\n")
+                    w.write(f"{atom1 + 1}\n"
+                            f"{atom2 + 1}\n"
+                            f"{overXbound}\n"
+                            f"{overYbound}\n"
+                            f"{overZbound}\n")
                     bondCounter += 1
                     if bondCounter == nBonds[frame]:
                         bondCounter = 0
                         frame += 1
-                        w.write(f"frame {frame}\n")
+                        if frame >= len(nBonds):
+                            break
+                        w.write(f"{frame}\n")
+                        #print(frame)
+                        w.write(f"{nBonds[frame]}\n")
         
     return
 
@@ -296,10 +303,12 @@ def checkBondLength(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, boxLengt
         
     return print("bond length check completed.")
 
-def coordination(numMol, nBonds, bondInfo):
+def coordination(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, bondInfo):
     """a function that finds the coordination of the atoms belonging to a three-bead molecule.
         First finds whether the bond is intramolecular and intermolecular and only counts the
         intermolecular bonds"""
+    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
+    filename = f"Run{runNum}_{conditions}"
     frame = 0
     bondCounter = 0
     atomCoordination = np.zeros((int(len(nBonds)) - 1, numMol * 3))
@@ -332,5 +341,6 @@ def coordination(numMol, nBonds, bondInfo):
     plt.semilogx()
     plt.xlabel("time frame (semilog axis)")
     plt.ylabel("average molecule coordination")
-    plt.show()
+    plt.savefig(f"../runs/{conditions}/{filename}/analysis/figs/molCoord")
+    plt.close()
     return
