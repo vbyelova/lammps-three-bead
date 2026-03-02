@@ -5,7 +5,7 @@ from numpy import random
 from random import randint
 
 def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom):
-    Nsteps = 200000 
+    Nsteps = 400000 
     equilTime = 120000
     r_cutoff = 1.112462048
     seed = randint(100000, 999999)
@@ -36,6 +36,7 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
         f.write(f"variable tstep          equal {tstep}\n")
         f.write(f"variable boxLength      equal lx\n")
         f.write(f"variable r_cutoff       equal {r_cutoff}\n")
+        f.write(f"variable s              equal logfreq3(10,100,{Nsteps})\n")
         f.write(f"variable prob           equal {prob}\n\n")
 
         # now some configuration stuff
@@ -120,15 +121,14 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
         f.write(f"reset_timestep 0\n")
         f.write(f"dump 1 all custom 1000 ../output/dump.lammpstrj"
                 f" id x y z type mol\n")
-        f.write(f"dump_modify 1 sort id\n\n")
+        f.write(f"dump_modify 1 sort id\n")
+        f.write(f"dump_modify 1 every v_s\n\n")
 
         f.write(f"compute myrdf all rdf {halfLength} 1 1\n")
         f.write(f"fix rdfstuff all ave/time 1000 1 1000 c_myrdf[*] "
                 f"file ../output/rdf.dat mode vector\n\n")
 
-        f.write(f"dump vis all custom 1000 ../output/vis.lammpstrj"
-                f" id x y z\n")
-        f.write(f'fix nbondsfile all print 1000 "${{allbonds}} " file'
+        f.write(f'fix nbondsfile all print v_s "${{allbonds}} " file'
                 f' ../output/nbonds.dat screen no\n')
         f.write(f"dump bondinfo all local 1000 ../output/bondinfo.dat"
                 f" index c_bondedatomid1 c_bondedatomid2"
@@ -137,6 +137,10 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
         f.write(f"dump angles all local 1000 ../output/moleculeangles.dat"
                 f" index c_angles c_angle_pe\n\n")
         
+        f.write(f"dump_modify bondinfo every v_s\n\n")
+        f.write(f"dump_modify angles every v_s\n\n")
+
+
         # let's run the main sim
         f.write(f"# main simulation\n\n")
         f.write(f"timestep {tstep}\n")

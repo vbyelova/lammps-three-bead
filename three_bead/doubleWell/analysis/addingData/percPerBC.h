@@ -57,7 +57,7 @@ protected:
 
 	/**
 	 * @brief Returns the dimension spanned by the given set of integer-valued vectors.
-	 * 
+	 *
 	 * Uses a modified version of Gaussian elimination to determine the dimensionality of the space spanned
 	 * by the given set of integer-valued vectors. This function was called "dim()" and referred to as the
 	 * algebraic dimension in the article of Livraghi *et al.*
@@ -93,7 +93,7 @@ public:
 
 	/**
 	 * @brief Returns the percolation dimension for the given connectivity graph.
-	 * 
+	 *
 	 * Calculates the number of dimensions over which the given nodes and connectivity (edges)
 	 * percolates, using the algorithm of Livraghi *et al.* (2021). The vertices are assumed to
 	 * be integers, and the connectivity is specified by a `std::map` in which the keys are directed
@@ -101,7 +101,7 @@ public:
 	 * *i.e.* a `std::array<int,dim>` with the shifts in units of system size for that connection.
 	 *
 	 * After returning, the clusters of connected nodes can also be accessed *via* getter methods.
-	 * 
+	 *
 	 * Note that these periodic shifts are called 'labels' in the Livraghi *et al.* paper.
 	 *
 	 * @param nodes Nodes (vertices) as a `std::set<int>`.
@@ -125,25 +125,25 @@ public:
 
 	/**
 	 * @brief Tests the 'spanning dimension' function.
-	 * 
+	 *
 	 * Runs some tests on the protected method spanningDimension() to check it works, at least for low dimensions.
 	 * Will give an assertion error if any test fails. Will also provide verbose outut if the flag is selected.
-	 * 
+	 *
 	 * @param verbose Option for verbose output; defaults to false.
 	 */
 	void debugSpanningDimension( bool verbose=false );
- 
+
 
 	/**
 	 * @brief Tests the 'is independent' function.
-	 * 
+	 *
 	 * Runs some tests on the protected method isIndependent() to check it works, at least for low dimensions.
 	 * Will give an assertion error if any test fails. Will also provide verbose outut if the flag is selected.
-	 * 
+	 *
 	 * @param verbose Option for verbose output; defaults to false.
 	 */
 	void debugIsIndependent( bool verbose=false );
- 
+
 };
 
 
@@ -174,7 +174,7 @@ int percPerBC<dim>::spanningDimension( intVecSet vecSet ) const
 	{
 		for( auto row=0; row<nRows; row++ ) matrix[row*nCols+col] = v[row];
 		col++;
-	}		
+	}
 
 	// Local lambda function to read the flattened matrix by row and column. Cannot be used to write.
 	auto mat = [&matrix,nCols]( int row, int col ) { return matrix[row*nCols+col]; };
@@ -219,7 +219,7 @@ int percPerBC<dim>::spanningDimension( intVecSet vecSet ) const
 
 		// Remove any new zero rows and reduce nRows accordingly; check loop counter as nRows may decrease.
 		__removeZeroRows( matrix, nCols, nRows );
-		if( col>=nRows ) break;	
+		if( col>=nRows ) break;
 
 		// Now know beta is not equal to zero. Perform the elimination on all rows below the diagonal.
 		for( auto row=col+1; row<nRows; row++ )
@@ -238,7 +238,7 @@ int percPerBC<dim>::spanningDimension( intVecSet vecSet ) const
 			}
 		}
 	}
-	
+
 	// The spanning dimension is the number of rows that do not consist entirely of zeros.
 	// Thought (10/10/25): Why not use __removeZeroRows() and return the number of rows?
 	int spanDim = 0;
@@ -251,7 +251,7 @@ int percPerBC<dim>::spanningDimension( intVecSet vecSet ) const
 				allZero = false;
 				break;
 			}
-		
+
 		if( !allZero ) spanDim++;
 	}
 
@@ -280,7 +280,7 @@ void percPerBC<dim>::__removeZeroRows( std::vector<int> &matrix, int nCols, int 
 					zeroRow = false;
 					break;
 				}
-			
+
 			// If so, shuffle the rows and reduce nRows by one.
 			if( zeroRow )
 			{
@@ -325,7 +325,7 @@ void percPerBC<dim>::__testSpanningDimension( intVecSet vectors, int answer, boo
 	// Verbose output about the result.
 	if( verbose )
 		std::cout << " - got result " << d << ", expected " << answer << " - " << (d==answer?"PASS":"FAIL") << "." << std::endl;
-	
+
 	// Assert the required result.
 	assert( d==answer );
 }
@@ -375,7 +375,7 @@ void percPerBC<dim>::__testIsIndependent( bool answer, intVecSet vecSet, std::ar
 	// Verbose output about the result.
 	if( verbose )
 		std::cout << std::boolalpha << " - got result '" << result << "', expected '" << answer << "' - " << (result==answer?"PASS":"FAIL") << "." << std::endl;
-	
+
 	// Assert the required result.
 	assert( result==answer );
 }
@@ -398,7 +398,11 @@ int percPerBC<dim>::percolationDimension( std::set<int> nodes, std::map< std::ar
 			||
 			std::find(nodes.begin(),nodes.end(),edge.first[1]) == nodes.end()
 		)
-			throw std::runtime_error( "FATAL in percPerBC::percolationDimension(): At least one edge had a node that is not in the node set." );
+		{
+		    std::cout << edge.first[0] << " " << edge.first[1] << std::endl;
+            throw std::runtime_error( "FATAL in percPerBC::percolationDimension(): At least one edge had a node that is not in the node set." );
+
+		}
 
 	// A dim-dimensional array of zeros.
 	std::array<int,dim> zeroArray;
@@ -435,7 +439,7 @@ int percPerBC<dim>::percolationDimension( std::set<int> nodes, std::map< std::ar
 			auto dist = Q.front().second;		// Note 'front()' does not remove the item, just accessess it.
 			Q.pop();							// Remove the item now; pop() does not return anything.
 
-			// Is this a copy of an already-visited node? 
+			// Is this a copy of an already-visited node?
 			if( std::find(visited.begin(),visited.end(),n1) != visited.end() )
 			{
 				// Calculate 'distance' from the original copy.

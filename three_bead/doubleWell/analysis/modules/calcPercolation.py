@@ -138,4 +138,23 @@ def testFrameByFrame():
         dimsPercolated.append(system.percolationDimension(V, E))
     return print(dimsPercolated)
 
-testFrameByFrame()
+def getPercDims(barrier, refoldBarrier, runNum, Vf, numMol, timesteps):
+    percDims = []
+    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
+    filename = f"Run{runNum}_{conditions}"
+    with open(f"../runs/{conditions}/{filename}/analysis/percDimsPerFrame.txt", "r") as f:
+        for line in f:
+            percDims.append(int(line))
+    
+    return percDims
+
+def plotPercolation(barrier, refoldBarrier, runNum, Vf, numMol, timesteps, percDims):
+
+    counter = 0
+    while counter < len(percDims):
+        print(timesteps[counter], percDims[counter])
+        counter += 1
+    print(timesteps, percDims)
+    plt.plot(timesteps, percDims)
+    plt.show()
+    return

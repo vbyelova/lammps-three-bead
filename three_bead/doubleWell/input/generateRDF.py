@@ -60,7 +60,7 @@ def generateRDF(conditions, filename, boxLength, numMol, prob, bondsPerAtom):
         f.write(f"timestep {tstep}\n")
         f.write(f"neighbor 0.5 bin\n")
         f.write(f"neigh_modify page 200000 one 20000\n")
-        f.write(f"read_dump ../output/dump.lammpstrj 0 x y z box yes\n")
+        f.write(f"read_dump ../output/dump.lammpstrj 10 x y z box yes\n")
         f.write(f"reset_timestep 0\n")
         f.write(f"compute myrdf all rdf 100 1 1\n")
         f.write(f"fix a all ave/time 500 1 500 c_myrdf[*] file "

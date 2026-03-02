@@ -46,13 +46,13 @@ def plotForceMagnitude(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondI
     plt.tight_layout()
     plt.show()
 
-def calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInfo, boxLength):
+def calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInfo, boxLength, timesteps):
     stressTensor = np.zeros((3, 3))
     avStressTensors = []
     bondCounter = 0
     frame = 0
     vol = boxLength ** 3
-    while frame < len(nBonds):
+    while frame < len(timesteps):
         forces = np.array([bondInfo[frame][bondCounter].properties[3],
                             bondInfo[frame][bondCounter].properties[4],
                             bondInfo[frame][bondCounter].properties[5]])
@@ -68,10 +68,10 @@ def calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInf
             frame += 1
     return avStressTensors
 
-def calcPressure(barrier, refoldBarrier, runNum, vf, numMol, nBonds, avStressTensors):
+def calcPressure(barrier, refoldBarrier, runNum, vf, numMol, nBonds, avStressTensors, timesteps):
     pressure = []
 
-    frames = [n for n in range(0, int(len(nBonds)))]
+    frames = [n for n in range(0, int(len(timesteps)))]
     for tensor in avStressTensors:
         pressure.append(np.trace(tensor) / 3)
     
@@ -81,7 +81,7 @@ def calcPressure(barrier, refoldBarrier, runNum, vf, numMol, nBonds, avStressTen
     plt.show()
     
 
-def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, nBonds, avStressTensors):
+def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, nBonds, avStressTensors, timesteps):
     pressure = defaultdict(list)
     pressureErr = defaultdict(list)
     avPressure = {}
@@ -91,7 +91,7 @@ def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, nBonds, a
 
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
-            frames = [n for n in range(0, int(len(nBonds)))]
+            frames = [n for n in range(0, int(len(timesteps)))]
             for tensor in avStressTensors:
                 press = np.trace(tensor) / 3
                 pressure[barrier].append(press)

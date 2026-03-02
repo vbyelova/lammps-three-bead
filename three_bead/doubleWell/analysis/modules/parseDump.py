@@ -29,17 +29,23 @@ def readData(name, numStep, everyN, numPar, equilTime):
     frame = 0
     counter = 0
     cols = 6
-    timestep = int(numStep / everyN)
+    timesteps = []
 
     pattern = r"""\d+\s\d+\s\d+\n""" # digits sandwiched by spaces
 
-    # generate array of zeros to store data in each particle
+    # read line by line to see if data or other stuff
+    with open(name, 'r+') as f:
+        for line in f:
+            if "ITEM: TIMESTEP" in line:
+                timestep = (next(f)).rsplit()[0]
+ 
+                timesteps.append(int(timestep))
+
     particles = [Particle() for n in range(numPar)]
     while p < numPar:
-        particles[p].properties = np.zeros((timestep + 1, cols))
+        particles[p].properties = np.zeros((len(timesteps) + 1, cols))
         p += 1
-    
-    # read line by line to see if data or other stuff
+
     with open(name) as f:
         for line in f:
             if re.search(pattern, line):
@@ -57,9 +63,9 @@ def readData(name, numStep, everyN, numPar, equilTime):
                     counter = 0
                   
     print("dump file processed..")
-    return particles
+    return particles, timesteps
 
-def parseBondInfo(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, boxLength):
+def parseBondInfo(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, boxLength, timesteps):
     """gets stress tensor information for each bond as fx, fy, fz, dx, dy and dz."""
     conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
     filename = f"Run{runNum}_{conditions}"
@@ -69,8 +75,8 @@ def parseBondInfo(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, boxLength)
     bondCounter = 0
     bondInfo = defaultdict(list)
 
-    for x in range(0, int(len(nBonds))):
-        bondInfo[x] = [Bond() for x in range(nBonds[x])]
+    for x, num in enumerate(nBonds):
+        bondInfo[x] = [Bond() for n in range(nBonds[x])]
     
     print("saving bond force and direction.. ")
     with open(f"../runs/{conditions}/{filename}/output/bondinfo.dat", "r") as f:
@@ -86,11 +92,12 @@ def parseBondInfo(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, boxLength)
                 if bondCounter == nBonds[frame]:
                     bondCounter = 0
                     frame += 1
+                    if frame == len(nBonds):
+                        break
     
     print("len bond info ", len(bondInfo))
     print("len nbonds ",len(nBonds))
     print("num frames ", frame)
-    print(bondInfo[1][0].properties)
 
     return bondInfo
 
@@ -136,11 +143,10 @@ def boundaryCheck(val, boxLength):
     else:
         return 0
 
-def parseForPercolation(particles, filename, nBonds, boxLength):
+def parseForPercolation(particles, filename, nBonds, boxLength, timesteps):
     """finds intermolecular bonds and tracks them as well as if they are across a boundary."""
     percolatedBonds = defaultdict(list)
     bondedAtoms = defaultdict(list)
-    totalFrames = len(nBonds) 
     bondCounter = 0
     frame = 0
     with open(filename, "r") as f:
@@ -160,22 +166,24 @@ def parseForPercolation(particles, filename, nBonds, boxLength):
                 if bondCounter == nBonds[frame]:
                     bondCounter = 0
                     frame += 1
+                if frame >= len(nBonds):
+                    break
 
     print("saved intermolecular bond information..")
     return percolatedBonds, bondedAtoms
 
-def FrameByFramePerc(particles, filename, writeto, nBonds, boxLength):
+def frameByFramePerc(particles, filename, writeto, nBonds, boxLength, timesteps):
     """finds bonded particles and saves them and over what boundary they are bonded. formatted
         for one value per line, for easier parsing in c++."""
-    totalFrames = len(nBonds)
     bondCounter = 0
     frame = 0
     with open(filename, "r") as f:
         with open(writeto, "w") as w:
-            w.write(f"{frame}\n")
+            w.write(f"{timesteps[frame]}\n")
             w.write(f"{nBonds[frame]}\n")
             for line in f:
                 if re.search(r"\d+\s+\d+\s+\d+", line):
+
                     info = line.rsplit()
                     atom1 = int(info[1]) - 1
                     atom2 = int(info[2]) - 1
@@ -186,27 +194,29 @@ def FrameByFramePerc(particles, filename, writeto, nBonds, boxLength):
                     overXbound = boundaryCheck(dx, boxLength)
                     overYbound = boundaryCheck(dy, boxLength)
                     overZbound = boundaryCheck(dz, boxLength)                
-                    w.write(f"{atom1 + 1}\n"
-                            f"{atom2 + 1}\n"
+                    w.write(f"{atom1}\n"
+                            f"{atom2}\n"
                             f"{overXbound}\n"
                             f"{overYbound}\n"
                             f"{overZbound}\n")
                     bondCounter += 1
                     if bondCounter == nBonds[frame]:
+                        print(frame, timesteps[frame], len(timesteps), len(nBonds))
                         bondCounter = 0
                         frame += 1
                         if frame >= len(nBonds):
                             break
-                        w.write(f"{frame}\n")
+                        w.write(f"{timesteps[frame]}\n")
                         #print(frame)
                         w.write(f"{nBonds[frame]}\n")
-        
+
+    print(f"there are {len(particles)} particles")
     return
 
-def parseBondsForVis(filename, nBonds):
+def parseBondsForVis(filename, nBonds, timesteps):
     """generates a list of bonded atoms."""
     frame = 0
-    totalFrames = len(nBonds)
+    totalFrames = len(timesteps)
 
 
     bondCounter = 0
@@ -227,58 +237,6 @@ def parseBondsForVis(filename, nBonds):
     print("got a list of bonded particles for processing..")
     return bondedAtoms
 
-def writePSFfiles(totalBonds, bondedAtoms, Npar, dillParticles):
-    """"generates psf files to draw shorter bonds in vmd. i wish this worked."""
-    with open(dillParticles, "rb") as f:
-        particles = pickle.load(f)
-    frame = 0
-    lineCount = 0
-    bCount = 0
-    nums = [_ for _ in range(0, Npar + 1)]
-    tCount = 1
-    seg = "SYS"
-    resid = 1
-    resname = "MOL"
-    name = "A"
-    typeB = "B"
-    charge = 0
-    mass = 1
-
-    while frame < len(totalBonds):
-        with open(f"../output/psfFiles/datafile%05d.psf" % frame, "w") as f:
-            f.write(f"  1 !NTITLE\n")
-            f.write(f"PSF\n\n")
-            f.write(f"0 !NATOM\n")
-            # f.write(f"{Npar} !NATOM\n")
-            # for num, p in enumerate(particles):
-            #     f.write(f"{int(particles[num].properties[frame, 0]):>8d} {seg:<4s} "
-            #             f"{resid:>4d} {resname:<4s} {name:4s} {typeB:<4s} "
-            #             f"{charge:>10.6f} {mass:13.4f}       0\n")
-            
-            f.write(f"\n{totalBonds[frame]} !NBONDS: bonds")
-            while bCount < totalBonds[frame]:
-
-                if bCount % 4 == 0:
-                    f.write(f"\n")
-                f.write(f"{bondedAtoms[lineCount]:>8d} {bondedAtoms[lineCount + 1]:>8d} ")
-                lineCount += 2
-                bCount += 1
-
-            f.write(f"\n\n{Npar} !NTHETA: angles\n")
-            while tCount < Npar:
-                f.write(f"{nums[tCount]} {nums[tCount + 1]} {nums[tCount + 2]}\n")
-                tCount += 3
-            tCount = 1
-            f.write(f"\n       0 !NPHI: dihedrals\n\n")
-            f.write(f"    0 !NPHI: impropers\n\n")
-            f.write(f"    0 !NCRTERM: cross-terms\n\n")
-        bCount = 0
-        frame += 1
-    
-    print("psf files made for visualising bonds..")
-    return
-
-            
 
 def checkBondLength(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, boxLength):
     """checks if a bond length is unrealistically long, if so then this means that wrapping is not working"""
@@ -303,7 +261,7 @@ def checkBondLength(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, boxLengt
         
     return print("bond length check completed.")
 
-def coordination(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, bondInfo):
+def coordination(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, bondInfo, timesteps):
     """a function that finds the coordination of the atoms belonging to a three-bead molecule.
         First finds whether the bond is intramolecular and intermolecular and only counts the
         intermolecular bonds"""
@@ -337,7 +295,7 @@ def coordination(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, bondInfo):
     avAtomCoord = np.mean(atomCoordination, axis = 1)
     xvals = np.arange(len(nBonds) - 1)
     avMolCoord = np.mean(moleculeCoordination, axis = 1)
-    plt.scatter(xvals, avMolCoord)
+    plt.scatter(timesteps, avMolCoord)
     plt.semilogx()
     plt.xlabel("time frame (semilog axis)")
     plt.ylabel("average molecule coordination")

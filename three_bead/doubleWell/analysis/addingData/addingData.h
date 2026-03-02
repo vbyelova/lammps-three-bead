@@ -33,13 +33,13 @@ std::set<int> loadPar(const std::string& fileName)
 
     // make a set of particles
     std::set<int> totalParticles {};
-    for(int i = 1; i <= numPar; i++)
+    for(int i = 0; i <= numPar; i++)
     {
         totalParticles.insert(i);
     }
-
     std::cout << std::endl;
     fileInput.close();
+    std::cout << "Loaded " << totalParticles.size() << " particles, max=" << *totalParticles.rbegin() << std::endl;
     return totalParticles;
 
 }
@@ -62,9 +62,11 @@ struct Frame
         {
             Frame currentFrame;
             currentFrame.frameNumber = std::stoi(line);
-
             if (!std::getline(fileInput, line)) break;
             numBonds = std::stoi(line);
+
+            std::cout << "frame number " << currentFrame.frameNumber << " number of bonds " << numBonds << std::endl;
+
 
             for (int i = 0; i < numBonds; i++ )
             {
@@ -94,7 +96,7 @@ struct Frame
         return frames;
     }
 
-
+/*
 std::set<int> testAddingData3D()
 {
     percPerBC<3> test3D;
@@ -125,3 +127,4 @@ std::set<int> testAddingData3D()
     file.close();
     return percDimSet;
 }
+*/

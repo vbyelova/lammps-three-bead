@@ -2,6 +2,7 @@ import numpy as np
 import pickle
 import re
 import os
+import subprocess
 from collections import defaultdict
 
 from modules.parseDump import *
@@ -19,7 +20,6 @@ numRuns = 1
 vf = 0.07
 numMol = 3939
 
-
 for barrier in unfoldBarriers:
     conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
     for runNum in range(numRuns):
@@ -30,23 +30,28 @@ for barrier in unfoldBarriers:
 
         # # let's parse the dump file first and save it for later
 
-        # # make directories for data and figures
-        # if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/figs"):
-        #     os.makedirs(f"../runs/{conditions}/{filename}/analysis/figs")
-        # if not os.path.exists(f"../runs/{conditions}/averagedFigs"):
-        #     os.makedirs(f"../runs/{conditions}/averagedFigs")
-        # if not os.path.exists(f"../runs/{conditions}/data"):
-        #     os.makedirs(f"../runs/{conditions}/data")
+        # make directories for data and figures
+        if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/figs"):
+            os.makedirs(f"../runs/{conditions}/{filename}/analysis/figs")
+        if not os.path.exists(f"../runs/{conditions}/averagedFigs"):
+            os.makedirs(f"../runs/{conditions}/averagedFigs")
+        if not os.path.exists(f"../runs/{conditions}/data"):
+            os.makedirs(f"../runs/{conditions}/data")
 
 
-        # # check if particle trajectories have been parsed
-        # if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl"):
-        #     particles = readData(f"../runs/{conditions}/{filename}/output/dump.lammpstrj", Nsteps, Nwrite, Npar, equilTime)
-        #     with open(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl", "wb") as f:
-        #         pickle.dump(particles, f)
-        # if os.path.exists(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl"):
-        #     with open(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl", "rb") as f:
-        #         particles = pickle.load(f)
+        # check if particle trajectories have been parsed
+        if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl"):
+            data = readData(f"../runs/{conditions}/{filename}/output/dump.lammpstrj", Nsteps, Nwrite, Npar, equilTime)
+            particles, timesteps = data[0], data[1]
+            with open(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl", "wb") as f:
+                pickle.dump(particles, f)
+            with open(f"../runs/{conditions}/{filename}/analysis/timesteps.pkl", "wb") as f:
+                pickle.dump(timesteps, f)
+        if os.path.exists(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl"):
+            with open(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl", "rb") as f:
+                particles = pickle.load(f)
+            with open(f"../runs/{conditions}/{filename}/analysis/timesteps.pkl", "rb") as f:
+                timesteps = pickle.load(f)
 
         # check if bonds have been counted yet
         if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl"):
@@ -59,17 +64,18 @@ for barrier in unfoldBarriers:
         
         # extract bond information e.g. bonded pairs, forces etc
         if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl"):
-            bondInfo = parseBondInfo(barrier, refoldBarrier, runNum, vf, numMol, nBonds, boxLength)
+            bondInfo = parseBondInfo(barrier, refoldBarrier, runNum, vf, numMol, nBonds, boxLength, timesteps)
             with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "wb") as f:
                 pickle.dump(bondInfo, f)
         if os.path.exists(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl"):
             with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "rb") as f:
                 bondInfo = pickle.load(f)
 
-        # # extract bonded pair information
+        # extract bonded pair information
         # if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percBonds.pkl"):    
-        #     bondedPairs = parseForPercolation(particles,f"../runs/{conditions}/{filename}/output/bondinfo.dat", nBonds, boxLength)
-        #     percolatedBonds, bondedAtoms = bondedPairs[0], bondedPairs[1]        
+        #     bondedPairs = parseForPercolation(particles,f"../runs/{conditions}/{filename}/output/bondinfo.dat",
+        #                                        nBonds, boxLength, timesteps)
+        #     percolatedBonds, bondedAtoms = bondedPairs[0], bondedPairs[1]
         #     with open(f"../runs/{conditions}/{filename}/analysis/percBonds.pkl", "wb") as f:
         #         pickle.dump(percolatedBonds, f)
         #     with open(f"../runs/{conditions}/{filename}/analysis/bondedPairs.pkl",  "wb") as f:
@@ -79,12 +85,27 @@ for barrier in unfoldBarriers:
         #         percolatedBonds = pickle.load(f)
         #     with open(f"../runs/{conditions}/{filename}/analysis/bondedPairs.pkl", "rb") as f:
         #         bondedPairs = pickle.load(f)
+
+        if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDims.pkl"):
+            frameByFramePerc(particles, f"../runs/{conditions}/{filename}/output/bondinfo.dat",
+                              f"../runs/{conditions}/{filename}/analysis/percinfo.txt",nBonds, boxLength, timesteps)
+            systemDataFile = f"../runs/{conditions}/{filename}/output/systemData.txt"
+            percInfoFile = f"../runs/{conditions}/{filename}/analysis/percinfo.txt"
+            outputFile = f"../runs/{conditions}/{filename}/analysis/percDimsPerFrame.txt"
+            subprocess.run(["./addingData/addingData", systemDataFile, percInfoFile, outputFile])
+            percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol, timesteps)
+            with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "wb") as f:
+                pickle.dump(percDims, f)
         
+        if os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDims.pkl"):
+            with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "rb") as f:
+                percDims = pickle.load(f)
+        
+        plotPercolation(barrier, refoldBarrier, runNum, vf, numMol, timesteps, percDims)
         #bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol)
-        #FrameByFramePerc(particles, f"../runs/{conditions}/{filename}/output/bondinfo.dat", f"../runs/{conditions}/{filename}/analysis/percinfo.txt",nBonds, boxLength)
-        #coordination(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInfo)
-        parsePosRDF(barrier, refoldBarrier, 0, vf, numMol)
-#plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength)
-#avStressTensors = calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInfo, boxLength)
-#calcPressure(barrier, refoldBarrier, runNum, vf, numMol, nBonds, avStressTensors)
+        #coordination(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInfo, timesteps)
+        #parsePosRDF(barrier, refoldBarrier, 0, vf, numMol)
+plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps, percDims)
+#avStressTensors = calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInfo, boxLength, timesteps)
+#calcPressure(barrier, refoldBarrier, runNum, vf, numMol, nBonds, avStressTensors, timesteps)
 print("done :D")

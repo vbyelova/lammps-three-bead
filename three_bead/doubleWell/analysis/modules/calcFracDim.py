@@ -7,12 +7,11 @@ import numpy as np
 import pickle
 import math
 import pwlf
-from GPyOpt.methods import BayesianOptimization
 
 from collections import defaultdict
 from .parseDump import *
 
-def boxCounting(filename, boxLength):
+def boxCounting(filename, boxLength, timesteps, percDims):
     """A function to count the number of particles in given boxLength intervals. First the number of voxels and
         their sizes is decided. Then bins are made to represent the voxels and digitize decides which voxel
         each particle belongs to. The unique voxels are counted and added to a list."""
@@ -30,6 +29,12 @@ def boxCounting(filename, boxLength):
     voxelSizes = [boxLength/ numDivs for numDivs in numVoxels]
     print("initialised arrays for box counting..")
 
+    for dim in percDims:
+        if dim == 3:
+            percAtFrame = percDims.index(dim)
+            continue
+        
+    print(percAtFrame)
 
     for vNum, v in enumerate(numVoxels):
         bins = np.linspace(- halfLength, halfLength, v + 1)
@@ -38,9 +43,9 @@ def boxCounting(filename, boxLength):
         print("made bins for boxLength size", vNum + 1 )
         
         for pNum, p in enumerate(particles):
-            x = p.properties[-1, 1]
-            y = p.properties[-1, 2]
-            z = p.properties[-1, 3]
+            x = p.properties[percAtFrame, 1]
+            y = p.properties[percAtFrame, 2]
+            z = p.properties[percAtFrame, 3]
 
             xVox = np.digitize(x, bins) - 1   #digitize returns 1-based, so -1
             yVox = np.digitize(y, bins) - 1
@@ -55,29 +60,34 @@ def boxCounting(filename, boxLength):
     return np.array(totalUniqueVoxels)
 
 
-def calcFractalDimension(unfoldBarrier, refoldBarrier, runNum, vf, numMol, totalUniqueVoxels, boxLength):
+def calcFractalDimension(unfoldBarrier, refoldBarrier, runNum, vf, numMol, totalUniqueVoxels, boxLength, timesteps, percDims):
     """calculates the fractal dimension for a single run"""
     conditions = f"unfold{unfoldBarrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
     filename = f"Run{runNum}_{conditions}"
+
     logNumUniqueVoxels = np.array([np.log(i) for i in totalUniqueVoxels[:,1]])
     logInverseVoxelSizes = np.array([np.log(1 / i) for i in totalUniqueVoxels[:,0]])
+
     plt.plot(logInverseVoxelSizes, logNumUniqueVoxels, '*', color = "hotpink")
     plt.legend([f"vf = {vf}\nunfolding barrier  = {unfoldBarrier}kT\n n. molecules = {numMol}"])
     plt.title("Finding fractal dimension by boxLength counting method")
     plt.xlabel("log(1 / R)")
     plt.ylabel("log( N )")
     plt.title(f"Run {runNum}")
+
     if boxLength > 30:
         model = pwlf.PiecewiseLinFit(logInverseVoxelSizes, logNumUniqueVoxels)
+        breaks = model.fit_guess([-1.5])
+
         xHat = np.linspace(min(logInverseVoxelSizes), max(logInverseVoxelSizes), 100)
-        res = model.fitfast(2, pop = 3)
         yHat = model.predict(xHat)
         plt.plot(xHat, yHat, "-", color = "purple")
-        plt.tight_layout()
         plt.xlim(math.floor(min(logInverseVoxelSizes)), int(max(logInverseVoxelSizes)))
+        plt.tight_layout()
         plt.savefig(f"../runs/{conditions}/{filename}/analysis/figs/boxCounting")
         plt.close()
-        return np.abs(model.slopes[1])
+        return 2, np.abs(model.slopes[1]), breaks[1]
+    
     if boxLength < 30:
         trend = np.polyfit(logInverseVoxelSizes, logNumUniqueVoxels, 1)
         trendpoly = np.poly1d(trend)
@@ -85,9 +95,9 @@ def calcFractalDimension(unfoldBarrier, refoldBarrier, runNum, vf, numMol, total
         plt.tight_layout()
         plt.savefig(f"../runs/{conditions}/{filename}/analysis/figs/boxCounting")
         plt.close()
-        return trend[0]
+        return 1, trend[0]
 
-def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength):
+def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps, percDims):
     fractalDim = defaultdict(list)
     fractalDimError = defaultdict(list)
     fractalDimMean = {}
@@ -99,8 +109,15 @@ def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
 
-            totalUniqueVoxels = boxCounting(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl", boxLength)
-            fractalDim[barrier].append(calcFractalDimension(barrier, refoldBarrier, runNum, vf, numMol, totalUniqueVoxels, boxLength))
+            totalUniqueVoxels = boxCounting(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl", boxLength, timesteps, percDims)
+            dimsAndBreak = calcFractalDimension(barrier, refoldBarrier, runNum, vf, numMol, totalUniqueVoxels, boxLength, timesteps, percDims)
+            if dimsAndBreak[0] == 2:
+                df = dimsAndBreak[1]
+                breakpoint = dimsAndBreak[2]
+                fractalDim[barrier].append(df)
+                print("breakpoint = ", breakpoint)
+            if dimsAndBreak[0] == 1:
+                fractalDim[barrier].append(dimsAndBreak[1])
 
         fractalDimMean[barrier] = sum(fractalDim[barrier]) / numRuns
         for val in fractalDim[barrier]:
@@ -115,9 +132,9 @@ def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
         
     return finalFractalDims, finalFractalDimsError
 
-def plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength):
+def plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps, percDims):
     """plots a scatter graph of what the average fractal dimension is with each unfolding barrier"""
-    fractalDims = findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength)
+    fractalDims = findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps, percDims)
     finalFractalDims, finalFractalDimsError = fractalDims[0], fractalDims[1]
 
     plt.bar(unfoldBarriers, finalFractalDims, yerr = finalFractalDimsError, color = "purple")
