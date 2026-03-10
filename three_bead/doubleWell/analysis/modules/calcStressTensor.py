@@ -62,8 +62,9 @@ def calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInf
         stressTensor += np.outer(vectors, forces)
         bondCounter += 1
         if bondCounter == nBonds[frame]:
-            stressTensor = - stressTensor / vol
-            avStressTensors.append(stressTensor)
+
+            avStressTensors.append(- stressTensor / vol)
+            stressTensor = np.zeros((3, 3))
             bondCounter = 0
             frame += 1
     return avStressTensors
@@ -81,24 +82,36 @@ def calcPressure(barrier, refoldBarrier, runNum, vf, numMol, nBonds, avStressTen
     plt.show()
     
 
-def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, nBonds, avStressTensors, timesteps):
-    pressure = defaultdict(list)
-    pressureErr = defaultdict(list)
+def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps):
+    allPressure = defaultdict(list)
     avPressure = {}
-    avPressureErr = []
+    avPressureErr = {}
+    
+    fig, ax = plt.subplots()
     for barrier in unfoldBarriers:
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+        frames = [n for n in range(0, int(len(timesteps)))]
 
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
-            frames = [n for n in range(0, int(len(timesteps)))]
-            for tensor in avStressTensors:
-                press = np.trace(tensor) / 3
-                pressure[barrier].append(press)
+            nBonds = totalBonds(f"../runs/{conditions}/{filename}/output/nbonds.dat")
+            bondInfo = parseBondInfo(barrier, refoldBarrier, runNum, vf, numMol,
+                                     nBonds, boxLength, timesteps)
+            avStressTensors = calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol,
+                                               nBonds, bondInfo, boxLength, timesteps)
+            runPressure = [np.trace(tensor) / 3 for tensor in avStressTensors]
+            allPressure[barrier].append(runPressure)
         
-        avPressure[barrier] = sum(pressure[barrier]) / numRuns
-        for val in avPressure[barrier]:
-            pressureErr[barrier].append(val - avPressure[barrier] ** 2)
+        pressureArray = np.array(allPressure[barrier])
+        avPressure[barrier] = pressureArray.mean(axis = 0)
+        avPressureErr[barrier] = pressureArray.std(axis = 0)
+        print(avPressure[barrier])
+        ax.plot(frames, avPressure[barrier], label = f"barrier = {barrier}kT")
 
+    ax.set_xlabel("simulation frame")
+    ax.set_ylabel("pressure")
+    ax.legend()
+    plt.savefig(f"../runs/{conditions}/averagedFigs/pressure")
+    
+    return
 
-    plt.plot

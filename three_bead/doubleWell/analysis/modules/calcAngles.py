@@ -39,14 +39,15 @@ def unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles):
     """makes a list of molecules that are unfolded (have an angle of 120-180)"""
     # let's say a particle is unfolded if it's around 120-180 degrees
     # based on our bimodal distribution
-    counter = 0
-    unfoldedMols = defaultdict(list)
-    while counter < len(angles):
-        for n in angles[counter]:
-            if n > 120:
-                unfoldedMols[counter].append(n)
-            counter += 1
 
+    unfoldedMols = defaultdict(list)
+    for frame in range(len(angles)):
+        for molID, angle in enumerate(angles[frame]):
+            if angle > 120:
+                unfoldedMols[frame].append(molID)
+
+
+    return unfoldedMols
 
 
 
@@ -68,3 +69,51 @@ def bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol):
     plt.close()
     return
 
+def anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, timesteps):
+    
+    totalFolded = defaultdict(list)
+    totalUnfolded = defaultdict(list)
+    foldedMean = {}
+    unfoldedMean = {}
+    foldedError = []
+    unfoldedError = []
+    
+    finalframe = len(timesteps) - 1
+    
+    for barrier in unfoldBarriers:
+        for runNum in range(numRuns):
+            angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol)
+            unfoldedMol = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles)
+        
+            numUnfolded = len(unfoldedMol[finalframe])
+            numFolded = numMol - numUnfolded
+            
+            totalFolded[barrier].append(numFolded)
+            totalUnfolded[barrier].append(numUnfolded)
+            
+        foldedArray = np.array(totalFolded[barrier])
+        unfoldedArray = np.array(totalUnfolded[barrier])
+            
+        foldedMean[barrier] = foldedArray.mean()
+        unfoldedMean[barrier] = unfoldedArray.mean()
+        foldedError.append(foldedArray.std())
+        unfoldedError.append(unfoldedArray.std())
+        
+    barWidth = 0.35
+    x = np.arange(len(unfoldBarriers))
+    
+    fig, ax = plt.subplots()
+    
+    ax.bar(x - barWidth / 2, [foldedMean[b] for b in unfoldBarriers],
+           width = barWidth, yerr = foldedError, color = "blue", label = "folded")
+    ax.bar(x + barWidth / 2, [unfoldedMean[b] for b in unfoldBarriers],
+           width = barWidth, yerr = unfoldedError, color = "red", label = "unfolded")
+    
+    ax.set_xticks(x)
+    ax.set_xticklabels(unfoldBarriers)
+    ax.set_xlabel("unfolding barrier (kT)")
+    ax.set_ylabel("number of molecules")
+    ax.legend()
+    plt.savefig(f"./barrierAnglePop")
+    plt.close()
+    return

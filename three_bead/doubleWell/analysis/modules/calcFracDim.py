@@ -11,7 +11,7 @@ import pwlf
 from collections import defaultdict
 from .parseDump import *
 
-def boxCounting(filename, boxLength, timesteps, percDims):
+def boxCounting(filename, boxLength, timesteps, percDims, atPerc):
     """A function to count the number of particles in given boxLength intervals. First the number of voxels and
         their sizes is decided. Then bins are made to represent the voxels and digitize decides which voxel
         each particle belongs to. The unique voxels are counted and added to a list."""
@@ -29,10 +29,13 @@ def boxCounting(filename, boxLength, timesteps, percDims):
     voxelSizes = [boxLength/ numDivs for numDivs in numVoxels]
     print("initialised arrays for box counting..")
 
-    for dim in percDims:
-        if dim == 3:
-            percAtFrame = percDims.index(dim)
-            continue
+    if atPerc == True:
+        for dim in percDims:
+            if dim == 3:
+                percAtFrame = percDims.index(dim)
+                continue
+    elif atPerc == False:
+        percAtFrame = len(timesteps - 1)
         
     print(percAtFrame)
 
@@ -59,6 +62,16 @@ def boxCounting(filename, boxLength, timesteps, percDims):
     print(totalUniqueVoxels)
     return np.array(totalUniqueVoxels)
 
+def avBoxCounting(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps, percDims):
+    totalPercRelax = defaultdict(list)
+    for barrier in unfoldBarriers:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+        for runNum in numRuns:
+            filename = f"Run{runNum}_{conditions}"
+            
+            boxCountAtPerc = boxCounting(f"../runs/{conditions}/{filename}/analyisis/particleTraj.pkl", boxLength, timesteps, percDims, True)
+            boxCountAtRelax = boxCounting(f".../runs/{conditions}/{filename}/analysis/particleTraj.pkl", boxLength, timesteps, percDims, False)
+            
 
 def calcFractalDimension(unfoldBarrier, refoldBarrier, runNum, vf, numMol, totalUniqueVoxels, boxLength, timesteps, percDims):
     """calculates the fractal dimension for a single run"""
@@ -110,7 +123,7 @@ def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
             filename = f"Run{runNum}_{conditions}"
 
             totalUniqueVoxels = boxCounting(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl", boxLength, timesteps, percDims)
-            dimsAndBreak = calcFractalDimension(barrier, refoldBarrier, runNum, vf, numMol, totalUniqueVoxels, boxLength, timesteps, percDims)
+            dimsAndBreak = calcFractalDimension(barrier, refoldBarrier, runNum, vf, numMol, totalUniqueVoxels, boxLength, timesteps, percDims, True)
             if dimsAndBreak[0] == 2:
                 df = dimsAndBreak[1]
                 breakpoint = dimsAndBreak[2]

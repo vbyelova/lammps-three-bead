@@ -20,7 +20,7 @@ barrierToUnfold = [3, 4, 5]
 barrierToRefold = 2
 
 numRuns = 5
-vf = [0.07]
+vf = [0.07, 0.10, 0.15]
 
 boxLength = 50
 
@@ -68,8 +68,8 @@ for volfrac in vf:
             for filename in files:
                 f.write(f"if not os.path.exists(f'../runs/{conditions}/{filename}/input/log.lammps'):\n")
                 f.write(f"\tprint('running simulation {filename}..')\n")
-                f.write(f"\tsubprocess.run(['lmp','-in','in.lammps'], cwd = '{filename}/input')\n\n")
+                f.write(f"\tsubprocess.run(['mpirun', '-n', '1', 'lmp','-in','in.lammps'], cwd = '{filename}/input')\n\n")
                 f.write(f"if not os.path.exists(f'../runs/{conditions}/{filename}/input/log_rerun.lammps'):\n")
-                f.write(f"\tsubprocess.run(['lmp', '-in', 'rdf.lammps'],cwd = '{filename}/input')\n\n")
+                f.write(f"\tsubprocess.run(['mpirun', '-n', '1', 'lmp', '-in', 'rdf.lammps'],cwd = '{filename}/input')\n\n")
 
 
