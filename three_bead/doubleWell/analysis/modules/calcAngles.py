@@ -140,11 +140,12 @@ def avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, timeste
         
         newUnfoldedArray = np.array(totalNewUnfoldedMol[barrier])
         avNewUnfoldedMol[barrier] = newUnfoldedArray.mean(axis = 0)
-        avNewUnfoldedMolErr[barrier] = newUnfoldedArray.std(axis = 0) / np.sqrt(numRuns)
+        avNewUnfoldedMolErr[barrier] = newUnfoldedArray.std(axis = 0)
         ax.errorbar(timesteps, avNewUnfoldedMol[barrier], yerr = avNewUnfoldedMolErr[barrier],
                 label = f"unfolding barrier = {barrier}kT")
-        
-    ax.set_xlabel("simulation frame")
+        ax.semilogx()
+
+    ax.set_xlabel("simulation frame (semilog axis)")
     ax.set_ylabel("number of new unfolding events")
     ax.legend()
     plt.savefig("./unfoldingEvents")

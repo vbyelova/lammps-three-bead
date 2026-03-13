@@ -17,12 +17,13 @@ from modules.parseRDF import *
 unfoldBarriers = [1, 3, 4, 5]
 refoldBarrier = 2
 numRuns = 5
-vf = 0.07
-numMol = 3939
+vf = [0.07, 0.1, 0.15]
+numMol = [3939, 5627, 8441]
 boxLength = 50
 
-for barrier in unfoldBarriers:
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+for volfrac, mol in vf, numMol:
+    barrier = unfoldBarriers[0]
+    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{volfrac}_mol{mol}"
     for runNum in range(numRuns):
         filename = f"Run{runNum}_{conditions}"
         systemData = parseSystemData(f"../runs/{conditions}/{filename}/output/systemData.txt")
@@ -38,8 +39,8 @@ for barrier in unfoldBarriers:
             os.makedirs(f"../runs/{conditions}/averagedFigs")
         if not os.path.exists(f"../runs/{conditions}/data"):
             os.makedirs(f"../runs/{conditions}/data")
-        if not os.path.exists(f"../runs/boxLength{boxLength}"):
-            os.makedirs(f"../runs/boxLength{boxLength}")
+        # if not os.path.exists(f"../runs/boxLength{boxLength}"):
+        #     os.makedirs(f"../runs")
 
 
         # check if particle trajectories have been parsed
@@ -89,16 +90,16 @@ for barrier in unfoldBarriers:
         #     with open(f"../runs/{conditions}/{filename}/analysis/bondedPairs.pkl", "rb") as f:
         #         bondedPairs = pickle.load(f)
 
-        if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDims.pkl"):
-            frameByFramePerc(particles, f"../runs/{conditions}/{filename}/output/bondinfo.dat",
-                              f"../runs/{conditions}/{filename}/analysis/percinfo.txt",nBonds, boxLength, timesteps)
-            systemDataFile = f"../runs/{conditions}/{filename}/output/systemData.txt"
-            percInfoFile = f"../runs/{conditions}/{filename}/analysis/percinfo.txt"
-            outputFile = f"../runs/{conditions}/{filename}/analysis/percDimsPerFrame.txt"
-            subprocess.run(["./addingData/addingData", systemDataFile, percInfoFile, outputFile])
-            percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol, timesteps)
-            with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "wb") as f:
-                pickle.dump(percDims, f)
+        # if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDims.pkl"):
+        #     frameByFramePerc(particles, f"../runs/{conditions}/{filename}/output/bondinfo.dat",
+        #                       f"../runs/{conditions}/{filename}/analysis/percinfo.txt",nBonds, boxLength, timesteps)
+        #     systemDataFile = f"../runs/{conditions}/{filename}/output/systemData.txt"
+        #     percInfoFile = f"../runs/{conditions}/{filename}/analysis/percinfo.txt"
+        #     outputFile = f"../runs/{conditions}/{filename}/analysis/percDimsPerFrame.txt"
+        #     subprocess.run(["./addingData/addingData", systemDataFile, percInfoFile, outputFile])
+        #     percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol, timesteps)
+        #     with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "wb") as f:
+        #         pickle.dump(percDims, f)
         
         if os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDims.pkl"):
             with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "rb") as f:
@@ -108,9 +109,9 @@ for barrier in unfoldBarriers:
         #bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol)
         #coordination(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInfo, timesteps)
         #parsePosRDF(barrier, refoldBarrier, 0, vf, numMol)
-#avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, timesteps)
-#plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps)
-plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps, percDims)
+avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, timesteps)
+plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps)
+#plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps, percDims)
 #avStressTensors = calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInfo, boxLength, timesteps)
 #calcPressure(barrier, refoldBarrier, runNum, vf, numMol, nBonds, avStressTensors, timesteps)
 print("done :D")

@@ -104,7 +104,7 @@ def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength
         
         pressureArray = np.array(allPressure[barrier])
         avPressure[barrier] = pressureArray.mean(axis = 0)
-        avPressureErr[barrier] = pressureArray.std(axis = 0) / np.sqrt(numRuns)
+        avPressureErr[barrier] = pressureArray.std(axis = 0)
         print(avPressure[barrier])
         ax.errorbar(timesteps, avPressure[barrier], yerr = avPressureErr[barrier],
                     label = f"barrier = {barrier}kT")

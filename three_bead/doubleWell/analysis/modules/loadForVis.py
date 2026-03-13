@@ -31,6 +31,8 @@ def angleToColour(angle):
     return r, g, b
 
 def loadForVis(barrier, refoldBarrier, runNum ,vf, numMol, particles, timesteps, unfoldedMols, angles):
+    pymol.finish_launching()
+    
     parRadius = 2 ** (1/6) * 0.3
     
     for frame in range(len(timesteps)):
@@ -52,7 +54,7 @@ def loadForVis(barrier, refoldBarrier, runNum ,vf, numMol, particles, timesteps,
         cmd.load_cgo(frame_cgo, f"Run{runNum}_Vf{vf}_mol{numMol}", state = frame + 1)
         
     cmd.zoom("all", buffer = 5)
-    framesDir = os.path.abspath("./frames")
-    saveMovie(vf, numMol, runNum, timesteps)
-    framesToMp4(f"Run{runNum}_Vf{vf}_mol{numMol}.mp4", framesDir, fps = 10)
+    # framesDir = os.path.abspath("./frames")
+    # saveMovie(vf, numMol, runNum, timesteps)
+    # framesToMp4(f"Run{runNum}_Vf{vf}_mol{numMol}.mp4", framesDir, fps = 10)
     return
