@@ -12,6 +12,7 @@ def saveMovie(vf, numMol, runNum, timesteps):
     
     import time
     time.sleep(2)
+    return
     
 def framesToMp4(output, framesDir, fps = 10):
     inputPattern = os.path.join(framesDir, "frame_%04d.png")
@@ -20,6 +21,7 @@ def framesToMp4(output, framesDir, fps = 10):
                             capture_output = True, text = True)
     print(result.stdout)
     print(result.stderr)
+    return
 
 def angleToColour(angle):
     norm = angle / 180

@@ -6,8 +6,7 @@ from collections import defaultdict
 from .parseDump import *
 
 def calcAngles(barrier, refoldBarrier, runNum, vf, numMol):
-    """saves angles of three bead molecules in each simulation frame and returns
-        the final frame."""
+    """saves angles of three bead molecules in each simulation frame."""
 
     conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
     filename = f"Run{runNum}_{conditions}"
@@ -70,7 +69,8 @@ def bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol):
     return
 
 def anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, timesteps):
-    
+    """plots a histogram of average distribution of folded vs unfolded molecules
+        with time."""
     totalFolded = defaultdict(list)
     totalUnfolded = defaultdict(list)
     foldedMean = {}
@@ -115,5 +115,38 @@ def anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, timestep
     ax.set_ylabel("number of molecules")
     ax.legend()
     plt.savefig(f"./barrierAnglePop")
+    plt.close()
+    return
+
+def avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, timesteps):
+    """plots a scatter graph of average unfolding events per timestep,
+        compares against multiple unfolding barriers."""
+    totalNewUnfoldedMol = defaultdict(list)
+    avNewUnfoldedMol = {}
+    avNewUnfoldedMolErr = {}
+    fix, ax = plt.subplots()
+    for barrier in unfoldBarriers:
+        for runNum in range(numRuns):
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+            filename = f"Run{runNum}_{conditions}"
+            nBonds = totalBonds(f"../runs/{conditions}/{filename}/output/nbonds.dat")
+            
+            newBonds = [0]
+            for frame in range(1, len(nBonds)):
+                newBonds.append(nBonds[frame] - nBonds[frame - 1])
+            
+            totalNewUnfoldedMol[barrier].append(newBonds)
+            print(totalNewUnfoldedMol[barrier])
+        
+        newUnfoldedArray = np.array(totalNewUnfoldedMol[barrier])
+        avNewUnfoldedMol[barrier] = newUnfoldedArray.mean(axis = 0)
+        avNewUnfoldedMolErr[barrier] = newUnfoldedArray.std(axis = 0) / np.sqrt(numRuns)
+        ax.errorbar(timesteps, avNewUnfoldedMol[barrier], yerr = avNewUnfoldedMolErr[barrier],
+                label = f"unfolding barrier = {barrier}kT")
+        
+    ax.set_xlabel("simulation frame")
+    ax.set_ylabel("number of new unfolding events")
+    ax.legend()
+    plt.savefig("./unfoldingEvents")
     plt.close()
     return

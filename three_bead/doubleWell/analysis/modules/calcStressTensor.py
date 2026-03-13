@@ -104,9 +104,10 @@ def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength
         
         pressureArray = np.array(allPressure[barrier])
         avPressure[barrier] = pressureArray.mean(axis = 0)
-        avPressureErr[barrier] = pressureArray.std(axis = 0)
+        avPressureErr[barrier] = pressureArray.std(axis = 0) / np.sqrt(numRuns)
         print(avPressure[barrier])
-        ax.plot(frames, avPressure[barrier], label = f"barrier = {barrier}kT")
+        ax.errorbar(timesteps, avPressure[barrier], yerr = avPressureErr[barrier],
+                    label = f"barrier = {barrier}kT")
 
     ax.set_xlabel("simulation frame")
     ax.set_ylabel("pressure")
