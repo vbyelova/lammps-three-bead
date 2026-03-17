@@ -68,7 +68,7 @@ def bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol):
     plt.close()
     return
 
-def anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, timesteps):
+def anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps):
     """plots a histogram of average distribution of folded vs unfolded molecules
         with time."""
     totalFolded = defaultdict(list)
@@ -114,11 +114,11 @@ def anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, timestep
     ax.set_xlabel("unfolding barrier (kT)")
     ax.set_ylabel("number of molecules")
     ax.legend()
-    plt.savefig(f"./barrierAnglePop")
+    plt.savefig(f"../runs/boxLength{boxLength}/barrierAnglePop_vf{vf}.png")
     plt.close()
     return
 
-def avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, timesteps):
+def avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps):
     """plots a scatter graph of average unfolding events per timestep,
         compares against multiple unfolding barriers."""
     totalNewUnfoldedMol = defaultdict(list)
@@ -143,11 +143,10 @@ def avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, timeste
         avNewUnfoldedMolErr[barrier] = newUnfoldedArray.std(axis = 0)
         ax.errorbar(timesteps, avNewUnfoldedMol[barrier], yerr = avNewUnfoldedMolErr[barrier],
                 label = f"unfolding barrier = {barrier}kT")
-        ax.semilogx()
 
-    ax.set_xlabel("simulation frame (semilog axis)")
+    ax.set_xlabel("simulation frame")
     ax.set_ylabel("number of new unfolding events")
     ax.legend()
-    plt.savefig("./unfoldingEvents")
+    plt.savefig(f"../runs/boxLength{boxLength}/unfoldingEvents_vf{vf}.png")
     plt.close()
     return

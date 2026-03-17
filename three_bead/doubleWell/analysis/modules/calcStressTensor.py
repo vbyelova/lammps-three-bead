@@ -94,9 +94,10 @@ def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength
 
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
-            nBonds = totalBonds(f"../runs/{conditions}/{filename}/output/nbonds.dat")
-            bondInfo = parseBondInfo(barrier, refoldBarrier, runNum, vf, numMol,
-                                     nBonds, boxLength, timesteps)
+            with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
+                nBonds = pickle.load(f)
+            with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "rb") as f:
+                bondInfo = pickle.load(f)   
             avStressTensors = calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol,
                                                nBonds, bondInfo, boxLength, timesteps)
             runPressure = [np.trace(tensor) / 3 for tensor in avStressTensors]
@@ -112,7 +113,8 @@ def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength
     ax.set_xlabel("simulation frame")
     ax.set_ylabel("pressure")
     ax.legend()
-    plt.savefig(f"../runs/{conditions}/averagedFigs/pressure")
-    
+    plt.savefig(f"../runs/boxLength{boxLength}/pressure_vf{vf}.png")
+    plt.close()
+    print("plotted average pressure..")
     return
 

@@ -301,4 +301,37 @@ def coordination(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, bondInfo, t
     plt.ylabel("average molecule coordination")
     plt.savefig(f"../runs/{conditions}/{filename}/analysis/figs/molCoord")
     plt.close()
+    return moleculeCoordination
+
+def avCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, Vf, boxLength, timesteps):
+    """a function to find the average molecule coordination per run"""
+    allCoordination = defaultdict(list)
+    avCoordination = {}
+    avCoordinationErr = {}
+
+    fig, ax = plt.subplots()
+    for barrier in unfoldBarriers:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
+        for runNum in range(numRuns):
+            filename = f"Run{runNum}_{conditions}"
+            with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
+                nBonds = pickle.load(f)
+            with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "rb") as f:
+                bondInfo = pickle.load(f)            
+            molCoordination = coordination(barrier, refoldBarrier, runNum, Vf, numMol,
+                                        nBonds, bondInfo, timesteps)
+
+            allCoordination[barrier].append(molCoordination)
+        coordinationArray = np.array(allCoordination[barrier])
+        avCoordination[barrier] = coordinationArray.mean(axis = 0)
+        avCoordinationErr[barrier] = coordinationArray.std(axis = 0)
+
+        ax.errorbar(timesteps, avCoordination[barrier], yerr = avCoordinationErr[barrier],
+                    label = f"barrier = {barrier}kT")
+    ax.set_xlabel("simulation frame")
+    ax.set_ylabel("molecule coordination")
+    ax.legend()
+    plt.savefig(f"../runs/boxLength{boxLength}/avCoordination_vf{Vf}.png")
+    plt.close()
+    print("plotted average molecule coordination..")
     return

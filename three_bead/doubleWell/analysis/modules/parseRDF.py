@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from collections import defaultdict
 
-def parsePosRDF(barrier, refoldBarrier, runNum, Vf, numMol):
+def parseLammpsPosRDF(barrier, refoldBarrier, runNum, Vf, numMol):
 
     conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
     filename = f"Run{runNum}_{conditions}"
@@ -37,4 +37,12 @@ def parsePosRDF(barrier, refoldBarrier, runNum, Vf, numMol):
     plt.xlabel("distance")
     plt.ylabel("g(r)")
     plt.show()
+    return
+
+def posRDF(barrier, refoldBarrier, runNum, Vf, numMol, particles):
+    """calculates the positional radial distribution function"""
+    return
+
+
+def calcAvPosRDF(unfoldBarriers, refoldBarrier):
     return

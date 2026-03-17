@@ -12,11 +12,12 @@ from modules.calcPercolation import *
 from modules.calcStressTensor import *
 from modules.threeBeadClasses import *
 from modules.parseRDF import *
+from modules.loadForVis import *
 
 # let's get the system data first
-unfoldBarriers = [1, 2, 3, 4, 5]
+unfoldBarriers = [2]
 refoldBarrier = 2
-numRuns = 5
+numRuns = 1
 vf = 0.07
 numMol = 3939
 boxLength = 50
@@ -74,40 +75,24 @@ for barrier in unfoldBarriers:
             with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "rb") as f:
                 bondInfo = pickle.load(f)
 
-        # extract bonded pair information
-        # if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percBonds.pkl"):    
-        #     bondedPairs = parseForPercolation(particles,f"../runs/{conditions}/{filename}/output/bondinfo.dat",
-        #                                        nBonds, boxLength, timesteps)
-        #     percolatedBonds, bondedAtoms = bondedPairs[0], bondedPairs[1]
-        #     with open(f"../runs/{conditions}/{filename}/analysis/percBonds.pkl", "wb") as f:
-        #         pickle.dump(percolatedBonds, f)
-        #     with open(f"../runs/{conditions}/{filename}/analysis/bondedPairs.pkl",  "wb") as f:
-        #         pickle.dump(bondedPairs, f)
-        # if os.path.exists(f"../runs/{conditions}/{filename}/analysis/percBonds.pkl"):
-        #     with open(f"../runs/{conditions}/{filename}/analysis/percBonds.pkl", "rb") as f:
-        #         percolatedBonds = pickle.load(f)
-        #     with open(f"../runs/{conditions}/{filename}/analysis/bondedPairs.pkl", "rb") as f:
-        #         bondedPairs = pickle.load(f)
-
-        if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDims.pkl"):
-            frameByFramePerc(particles, f"../runs/{conditions}/{filename}/output/bondinfo.dat",
-                              f"../runs/{conditions}/{filename}/analysis/percinfo.txt",nBonds, boxLength, timesteps)
-            systemDataFile = f"../runs/{conditions}/{filename}/output/systemData.txt"
-            percInfoFile = f"../runs/{conditions}/{filename}/analysis/percinfo.txt"
-            outputFile = f"../runs/{conditions}/{filename}/analysis/percDimsPerFrame.txt"
-            subprocess.run(["./addingData/addingData", systemDataFile, percInfoFile, outputFile])
-            percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol, timesteps)
-            with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "wb") as f:
-                pickle.dump(percDims, f)
+        # if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDims.pkl"):
+        #     frameByFramePerc(particles, f"../runs/{conditions}/{filename}/output/bondinfo.dat",
+        #                       f"../runs/{conditions}/{filename}/analysis/percinfo.txt",nBonds, boxLength, timesteps)
+        #     systemDataFile = f"../runs/{conditions}/{filename}/output/systemData.txt"
+        #     percInfoFile = f"../runs/{conditions}/{filename}/analysis/percinfo.txt"
+        #     outputFile = f"../runs/{conditions}/{filename}/analysis/percDimsPerFrame.txt"
+        #     subprocess.run(["./addingData/addingData", systemDataFile, percInfoFile, outputFile])
+        #     percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol, timesteps)
+        #     with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "wb") as f:
+        #         pickle.dump(percDims, f)
         
-        if os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDims.pkl"):
-            with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "rb") as f:
-                percDims = pickle.load(f)
-        
+        # if os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDims.pkl"):
+        #     with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "rb") as f:
+        #         percDims = pickle.load(f)
 
-avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps)
-plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps)
-plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps, percDims)
-anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps)
-avCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, timesteps)
+
+
+angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol)
+unfoldedMols = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles)        
+loadForVis(barrier, refoldBarrier, runNum, vf, numMol, particles, timesteps, unfoldedMols, angles)
 print("done :D")

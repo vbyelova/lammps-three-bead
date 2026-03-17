@@ -23,8 +23,9 @@ def framesToMp4(output, framesDir, fps = 10):
     print(result.stderr)
     return
 
-def angleToColour(angle):
-    norm = angle / 180
+def angleToColour(angle, minAngle, maxAngle):
+    norm = (angle - minAngle) / (maxAngle - minAngle)
+    norm = max(0, min(1, norm))
     r = norm
     g = 0
     b = 1 - norm
@@ -33,8 +34,10 @@ def angleToColour(angle):
 def loadForVis(barrier, refoldBarrier, runNum ,vf, numMol, particles, timesteps, unfoldedMols, angles):
     pymol.finish_launching()
     
-    parRadius = 2 ** (1/6) * 0.3
+    parRadius = 2 ** (1/6) * 0.4
     
+    minAngle = min(min(angles[frame] for frame in range(len(timesteps))))
+    maxAngle = max(max(angles[frame] for frame in range(len(timesteps))))
     for frame in range(len(timesteps)):
         frame_cgo = []
         
@@ -42,18 +45,21 @@ def loadForVis(barrier, refoldBarrier, runNum ,vf, numMol, particles, timesteps,
             x = particles[num].properties[frame, 1]
             y = particles[num].properties[frame, 2]
             z = particles[num].properties[frame, 3]
-            molID = int(particles[num].properties[frame, 5]) - 1 
+            molID = int(particles[num].properties[frame, 5])
             
             if molID < len(angles[frame]):
                 angle = angles[frame][molID]
         
-            r, g, b = angleToColour(angle)
+            r, g, b = angleToColour(angle, minAngle, maxAngle)
             
             frame_cgo.extend([cgo.COLOR, r, g, b, cgo.SPHERE, x, y, z, parRadius])
-            
-        cmd.load_cgo(frame_cgo, f"Run{runNum}_Vf{vf}_mol{numMol}", state = frame + 1)
+
+        print(f"frame: {frame}. min angle: {min(angles[frame])}. max angle: {max(angles[frame])}")    
+        cmd.load_cgo(frame_cgo, f"unfold{barrier}_Run{runNum}_Vf{vf}_mol{numMol}", state = frame + 1)
         
     cmd.zoom("all", buffer = 5)
+    cmd.bg_color("white")
+    cmd.set("ray_opaque_background", 1)
     # framesDir = os.path.abspath("./frames")
     # saveMovie(vf, numMol, runNum, timesteps)
     # framesToMp4(f"Run{runNum}_Vf{vf}_mol{numMol}.mp4", framesDir, fps = 10)
