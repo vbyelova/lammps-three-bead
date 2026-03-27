@@ -135,13 +135,22 @@ def totalBonds(filename):
     return nBonds
 
 def boundaryCheck(val, boxLength):
-    """checks if a coordinate is crossing a boundary condition and wraps around the box if it is."""
+    """checks if a coordinate is crossing a boundary condition and returns values for periodic boundaries."""
     if val < - 0.5 * boxLength:
         return -1
     if val > 0.5 * boxLength:
         return 1
     else:
         return 0
+
+def wrapping(val, boxLength):
+    while val > 0.5 * boxLength or val < -0.5 * boxLength:
+        if val > 0.5 * boxLength:
+            val -= boxLength
+        elif val < 0.5 * boxLength:
+            val += boxLength
+    return
+
 
 def parseForPercolation(particles, filename, nBonds, boxLength, timesteps):
     """finds intermolecular bonds and tracks them as well as if they are across a boundary."""
@@ -261,6 +270,39 @@ def checkBondLength(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, boxLengt
         
     return print("bond length check completed.")
 
+def particleCoordination(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, bondInfo, timesteps):
+    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
+    filename = f"Run{runNum}_{conditions}"
+    frame = 0
+    bondCounter = 0
+    bondCounter = 0
+    parCoordination = np.zeros((len(nBonds), numMol * 3))
+    trackedBonds = set()
+    while frame < len(timesteps):
+        print(f"frame {frame}")
+        bondedAtom1 = int(bondInfo[frame][bondCounter].properties[1]) - 1
+        bondedAtom2 = int(bondInfo[frame][bondCounter].properties[2]) - 1
+        mol1 = bondedAtom1 // 3
+        mol2 = bondedAtom2 // 3
+        if mol1 == mol2:
+            pass
+        else:
+            bondID = tuple([mol1, mol2])
+            if bondID not in trackedBonds:
+                parCoordination[frame][bondedAtom1] += 1
+                parCoordination[frame][bondedAtom2] += 1
+                trackedBonds.add(bondID)
+            else:
+                pass
+        bondCounter += 1
+        if bondCounter == nBonds[frame]:
+            print(f"completed frame {frame}")
+            trackedBonds.clear()
+            bondCounter = 0
+            frame += 1
+
+    return parCoordination
+
 def coordination(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, bondInfo, timesteps):
     """a function that finds the coordination of the atoms belonging to a three-bead molecule.
         First finds whether the bond is intramolecular and intermolecular and only counts the
@@ -269,9 +311,10 @@ def coordination(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, bondInfo, t
     filename = f"Run{runNum}_{conditions}"
     frame = 0
     bondCounter = 0
-    atomCoordination = np.zeros((int(len(nBonds)) - 1, numMol * 3))
-    moleculeCoordination = np.zeros((int(len(nBonds)) - 1, numMol))
-    while frame < len(nBonds) - 1:
+    atomCoordination = np.zeros((len(nBonds), numMol * 3))
+    moleculeCoordination = np.zeros((len(nBonds), numMol))
+    trackedBonds = set()
+    while frame < len(timesteps):
         bondedAtom1 = int(bondInfo[frame][bondCounter].properties[1]) - 1
         bondedAtom2 = int(bondInfo[frame][bondCounter].properties[2]) - 1
 
@@ -282,25 +325,32 @@ def coordination(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, bondInfo, t
             pass
         else:
             # intermolecular bond case
+            bondID = tuple([bondedAtom1, bondedAtom2])
             atomCoordination[frame][bondedAtom1] += 1
             atomCoordination[frame][bondedAtom2] += 1
-            moleculeCoordination[frame][mol1] += 1
-            moleculeCoordination[frame][mol2] += 1
+            if bondID not in trackedBonds:
+                moleculeCoordination[frame][mol1] += 1
+                moleculeCoordination[frame][mol2] += 1
+                trackedBonds.add(bondID)
+            else:
+                pass
         bondCounter += 1
         if bondCounter == nBonds[frame]:
+            trackedBonds.clear()
             bondCounter = 0
             frame += 1
 
+
     print("counted intermolecular bonds per atom..")
-    avAtomCoord = np.mean(atomCoordination, axis = 1)
-    xvals = np.arange(len(nBonds) - 1)
-    avMolCoord = np.mean(moleculeCoordination, axis = 1)
-    plt.scatter(timesteps, avMolCoord)
-    plt.semilogx()
-    plt.xlabel("time frame (semilog axis)")
-    plt.ylabel("average molecule coordination")
-    plt.savefig(f"../runs/{conditions}/{filename}/analysis/figs/molCoord")
-    plt.close()
+    # avAtomCoord = np.mean(atomCoordination, axis = 0)
+    # xvals = np.arange(len(nBonds) - 1)
+    # avMolCoord = np.mean(moleculeCoordination, axis = 0)
+    # plt.scatter(timesteps, avMolCoord)
+    # plt.semilogx()
+    # plt.xlabel("time frame (semilog axis)")
+    # plt.ylabel("average molecule coordination")
+    # plt.savefig(f"../runs/{conditions}/{filename}/analysis/figs/molCoord")
+    # plt.close()
     return moleculeCoordination
 
 def avCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, Vf, boxLength, timesteps):
@@ -321,10 +371,15 @@ def avCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, Vf, boxLength
             molCoordination = coordination(barrier, refoldBarrier, runNum, Vf, numMol,
                                         nBonds, bondInfo, timesteps)
 
-            allCoordination[barrier].append(molCoordination)
+            runAvCoordination = molCoordination.mean(axis = 1)
+            allCoordination[barrier].append(runAvCoordination)
+            print(f"coordination is {molCoordination}")
         coordinationArray = np.array(allCoordination[barrier])
         avCoordination[barrier] = coordinationArray.mean(axis = 0)
+        print(f"av coordination for {barrier} barrier is {avCoordination[barrier]}")
         avCoordinationErr[barrier] = coordinationArray.std(axis = 0)
+
+        print(f"len timesteps {len(timesteps)} len coord {len(avCoordination[barrier])}")
 
         ax.errorbar(timesteps, avCoordination[barrier], yerr = avCoordinationErr[barrier],
                     label = f"barrier = {barrier}kT")

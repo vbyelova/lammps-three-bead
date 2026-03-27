@@ -16,11 +16,11 @@ from generateRDF import *
 # first input value is unfolding barrier height
 # second input value is minimum energy for unfolded state
 
-barrierToUnfold = [1, 2, 10]
+barrierToUnfold = [1, 5]
 barrierToRefold = 2
 
-numRuns = 5
-vf = [0.07, 0.10, 0.15]
+numRuns = 3
+vf = [0.02, 0.04]
 
 boxLength = 50
 

@@ -110,10 +110,11 @@ def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength
         ax.errorbar(timesteps, avPressure[barrier], yerr = avPressureErr[barrier],
                     label = f"barrier = {barrier}kT")
 
-    ax.set_xlabel("simulation frame")
+    ax.set_xlabel("simulation frame (semi log)")
     ax.set_ylabel("pressure")
+    ax.semilogx()
     ax.legend()
-    plt.savefig(f"../runs/boxLength{boxLength}/pressure_vf{vf}.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/pressure_vf{vf}_semilog.png")
     plt.close()
     print("plotted average pressure..")
     return

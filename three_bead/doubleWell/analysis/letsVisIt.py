@@ -15,7 +15,7 @@ from modules.parseRDF import *
 from modules.loadForVis import *
 
 # let's get the system data first
-unfoldBarriers = [2]
+unfoldBarriers = [3]
 refoldBarrier = 2
 numRuns = 1
 vf = 0.07
@@ -93,6 +93,7 @@ for barrier in unfoldBarriers:
 
 
 angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol)
-unfoldedMols = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles)        
-loadForVis(barrier, refoldBarrier, runNum, vf, numMol, particles, timesteps, unfoldedMols, angles)
+unfoldedMols = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles)     
+parCoordination = particleCoordination(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInfo, timesteps)
+loadCoordVis(barrier, refoldBarrier, runNum, vf, numMol, particles, timesteps, parCoordination)
 print("done :D")
