@@ -314,7 +314,7 @@ def coordination(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, bondInfo, t
     atomCoordination = np.zeros((len(nBonds), numMol * 3))
     moleculeCoordination = np.zeros((len(nBonds), numMol))
     trackedBonds = set()
-    while frame < len(timesteps):
+    while frame < len(nBonds):
         bondedAtom1 = int(bondInfo[frame][bondCounter].properties[1]) - 1
         bondedAtom2 = int(bondInfo[frame][bondCounter].properties[2]) - 1
 
@@ -381,7 +381,7 @@ def avCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, Vf, boxLength
 
         print(f"len timesteps {len(timesteps)} len coord {len(avCoordination[barrier])}")
 
-        ax.errorbar(timesteps, avCoordination[barrier], yerr = avCoordinationErr[barrier],
+        ax.errorbar(timesteps[1:], avCoordination[barrier], yerr = avCoordinationErr[barrier],
                     label = f"barrier = {barrier}kT")
     ax.set_xlabel("simulation frame")
     ax.set_ylabel("molecule coordination")

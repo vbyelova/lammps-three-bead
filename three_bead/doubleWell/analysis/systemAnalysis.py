@@ -15,7 +15,7 @@ from modules.parseRDF import *
 from modules.calcPorosity import *
 
 # let's get the system data first
-unfoldBarriers = [1, 2, 3, 4]
+unfoldBarriers = [1, 2, 3, 4, 5]
 refoldBarrier = 2
 numRuns = 5
 vf = 0.04
@@ -33,14 +33,14 @@ for barrier in unfoldBarriers:
         # # let's parse the dump file first and save it for later
 
         # make directories for data and figures
-        if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/figs"):
-            os.makedirs(f"../runs/{conditions}/{filename}/analysis/figs")
-        if not os.path.exists(f"../runs/{conditions}/averagedFigs"):
-            os.makedirs(f"../runs/{conditions}/averagedFigs")
-        if not os.path.exists(f"../runs/{conditions}/data"):
-            os.makedirs(f"../runs/{conditions}/data")
-        if not os.path.exists(f"../runs/boxLength{boxLength}"):
-            os.makedirs(f"../runs/boxLength{boxLength}")
+        # if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/figs"):
+        #     os.makedirs(f"../runs/{conditions}/{filename}/analysis/figs")
+        # if not os.path.exists(f"../runs/{conditions}/averagedFigs"):
+        #     os.makedirs(f"../runs/{conditions}/averagedFigs")
+        # if not os.path.exists(f"../runs/{conditions}/data"):
+        #     os.makedirs(f"../runs/{conditions}/data")
+        # if not os.path.exists(f"../runs/boxLength{boxLength}"):
+        #     os.makedirs(f"../runs/boxLength{boxLength}")
 
 
         # check if particle trajectories have been parsed
@@ -101,27 +101,27 @@ for barrier in unfoldBarriers:
         #     with open(f"../runs/{conditions}/{filename}/analysis/bondedPairs.pkl", "rb") as f:
         #         bondedPairs = pickle.load(f)
 
-        # if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDims.pkl"):
-        #     frameByFramePerc(particles, f"../runs/{conditions}/{filename}/output/bondinfo.dat",
-        #                       f"../runs/{conditions}/{filename}/analysis/percinfo.txt",nBonds, boxLength, timesteps)
-        #     systemDataFile = f"../runs/{conditions}/{filename}/output/systemData.txt"
-        #     percInfoFile = f"../runs/{conditions}/{filename}/analysis/percinfo.txt"
-        #     outputFile = f"../runs/{conditions}/{filename}/analysis/percDimsPerFrame.txt"
-        #     subprocess.run(["./addingData/addingData", systemDataFile, percInfoFile, outputFile])
-        #     percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol, timesteps)
-        #     with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "wb") as f:
-        #         pickle.dump(percDims, f)
+        if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDims.pkl"):
+            frameByFramePerc(particles, f"../runs/{conditions}/{filename}/output/bondinfo.dat",
+                              f"../runs/{conditions}/{filename}/analysis/percinfo.txt",nBonds, boxLength, timesteps)
+            systemDataFile = f"../runs/{conditions}/{filename}/output/systemData.txt"
+            percInfoFile = f"../runs/{conditions}/{filename}/analysis/percinfo.txt"
+            outputFile = f"../runs/{conditions}/{filename}/analysis/percDimsPerFrame.txt"
+            subprocess.run(["./addingData/addingData", systemDataFile, percInfoFile, outputFile])
+            percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol, timesteps)
+            with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "wb") as f:
+                pickle.dump(percDims, f)
         
-        # if os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDims.pkl"):
-        #     with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "rb") as f:
-        #         percDims = pickle.load(f)
+        if os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDims.pkl"):
+            with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "rb") as f:
+                percDims = pickle.load(f)
         
 
-#avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps)
-#plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps)
-#plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps, percDims)
-#anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps)
-#avCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, timesteps)
-avRDFs, avRDFsErr, shellBoundsavPosRDF = (unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps)
-#calcPorosity(particles, barrier, refoldBarrier, runNum, vf, numMol, boxLength)
+avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps)
+plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps)
+plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps, percDims)
+anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps)
+avCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, timesteps)
+avRDFs, avRDFsErr, shellBounds = avPosRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps)
+calcPorosity(particles, barrier, refoldBarrier, runNum, vf, numMol, boxLength)
 print("done :D")

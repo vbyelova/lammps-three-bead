@@ -52,7 +52,7 @@ def calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInf
     bondCounter = 0
     frame = 0
     vol = boxLength ** 3
-    while frame < len(timesteps):
+    while frame < len(nBonds):
         forces = np.array([bondInfo[frame][bondCounter].properties[3],
                             bondInfo[frame][bondCounter].properties[4],
                             bondInfo[frame][bondCounter].properties[5]])
@@ -107,7 +107,7 @@ def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength
         avPressure[barrier] = pressureArray.mean(axis = 0)
         avPressureErr[barrier] = pressureArray.std(axis = 0)
         print(avPressure[barrier])
-        ax.errorbar(timesteps, avPressure[barrier], yerr = avPressureErr[barrier],
+        ax.errorbar(timesteps[1:], avPressure[barrier], yerr = avPressureErr[barrier],
                     label = f"barrier = {barrier}kT")
 
     ax.set_xlabel("simulation frame (semi log)")

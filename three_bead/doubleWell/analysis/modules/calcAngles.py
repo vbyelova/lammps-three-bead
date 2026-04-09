@@ -130,23 +130,64 @@ def avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLeng
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
             filename = f"Run{runNum}_{conditions}"
             nBonds = totalBonds(f"../runs/{conditions}/{filename}/output/nbonds.dat")
+            angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol)
+            unfoldedMols = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles)
             
-            newBonds = [0]
+            newUnfoldedCount = [0]
+            print(nBonds)
             for frame in range(1, len(nBonds)):
-                newBonds.append(nBonds[frame] - nBonds[frame - 1])
+                newUnfoldedCount.append(len(unfoldedMols[frame]) - len(unfoldedMols[frame - 1]))
             
-            totalNewUnfoldedMol[barrier].append(newBonds)
+            totalNewUnfoldedMol[barrier].append(newUnfoldedCount)
             print(totalNewUnfoldedMol[barrier])
         
         newUnfoldedArray = np.array(totalNewUnfoldedMol[barrier])
         avNewUnfoldedMol[barrier] = newUnfoldedArray.mean(axis = 0)
         avNewUnfoldedMolErr[barrier] = newUnfoldedArray.std(axis = 0)
-        ax.errorbar(timesteps, avNewUnfoldedMol[barrier], yerr = avNewUnfoldedMolErr[barrier],
+        print(f"len timesteps {len(timesteps)}, len unfolded mol {len(avNewUnfoldedMol[barrier])}")
+        print(timesteps)
+        ax.errorbar(timesteps[1:], avNewUnfoldedMol[barrier], yerr = avNewUnfoldedMolErr[barrier],
                 label = f"unfolding barrier = {barrier}kT")
 
     ax.set_xlabel("simulation frame")
     ax.set_ylabel("number of new unfolding events")
     ax.legend()
     plt.savefig(f"../runs/boxLength{boxLength}/unfoldingEvents_vf{vf}.png")
+    plt.close()
+    return
+
+def avNewBondsPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps):
+    """plots a scatter graph of new bonding events per timestep,
+        compares against multiple unfolding barriers."""
+    totalNewBonds = defaultdict(list)
+    aveNewBond = {}
+    aveNewBondErr = {}
+    fix, ax = plt.subplots()
+    for barrier in unfoldBarriers:
+        for runNum in range(numRuns):
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+            filename = f"Run{runNum}_{conditions}"
+            nBonds = totalBonds(f"../runs/{conditions}/{filename}/output/nbonds.dat")
+            
+            newBonds = [0, (nBonds[0] - numMol * 2)]
+            print(nBonds)
+            for frame in range(1, len(nBonds)):
+                newBonds.append(nBonds[frame] - nBonds[frame - 1])
+            
+            totalNewBonds[barrier].append(newBonds)
+            print(totalNewBonds[barrier])
+        
+        newBondArray = np.array(totalNewBonds[barrier])
+        aveNewBond[barrier] = newBondArray.mean(axis = 0)
+        aveNewBondErr[barrier] = newBondArray.std(axis = 0)
+        print(f"len timesteps {len(timesteps)}, len unfolded mol {len(aveNewBond[barrier])}")
+        print(timesteps)
+        ax.errorbar(timesteps, aveNewBond[barrier], yerr = aveNewBondErr[barrier],
+                label = f"unfolding barrier = {barrier}kT")
+
+    ax.set_xlabel("simulation frame")
+    ax.set_ylabel("number of bonding events")
+    ax.legend()
+    plt.savefig(f"../runs/boxLength{boxLength}/bondingEvents_vf{vf}.png")
     plt.close()
     return

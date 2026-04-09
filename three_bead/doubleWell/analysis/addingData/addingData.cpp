@@ -24,9 +24,17 @@ int main(int argc, char* argv[])
         std::cout << "frame number " << frame.frameNumber << std::endl;
 
         int percDim = test3D.percolationDimension(totalParticles, frame.data);
-        //std::cout << percDim << std::endl;
-        file << percDim << std::endl;
+        if (percDim != 3)
+        {
+            file << percDim << std::endl;
+        }
+        else
+        {
+            file << percDim << std::endl;
+            break;
+        }
     }
+
 
     file.close();
 /*
