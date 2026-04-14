@@ -4,12 +4,12 @@ from numpy import random
 from scipy.optimize import minimize, root
 import os
 
-from doubleWellCoeffs import *
-from generateMonomer import *
-from generateDimer import *
-from generateThreeBead import *
-from generateLammpsInput import *
-from generateRDF import *
+from modules.doubleWellCoeffs import *
+from modules.generateMonomer import *
+from modules.generateDimer import *
+from modules.generateThreeBead import *
+from modules.generateLammpsInput import *
+from modules.generateRDF import *
 
 #generate optimal values for quartic function
 

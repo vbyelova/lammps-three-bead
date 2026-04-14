@@ -43,7 +43,7 @@ def readData(name, numStep, everyN, numPar, equilTime):
 
     particles = [Particle() for n in range(numPar)]
     while p < numPar:
-        particles[p].properties = np.zeros((len(timesteps) + 1, cols))
+        particles[p].properties = np.zeros((len(timesteps), cols))
         p += 1
 
     with open(name) as f:
@@ -381,7 +381,7 @@ def avCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, Vf, boxLength
 
         print(f"len timesteps {len(timesteps)} len coord {len(avCoordination[barrier])}")
 
-        ax.errorbar(timesteps[1:], avCoordination[barrier], yerr = avCoordinationErr[barrier],
+        ax.errorbar(timesteps, avCoordination[barrier], yerr = avCoordinationErr[barrier],
                     label = f"barrier = {barrier}kT")
     ax.set_xlabel("simulation frame")
     ax.set_ylabel("molecule coordination")

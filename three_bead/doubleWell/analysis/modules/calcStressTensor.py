@@ -107,7 +107,7 @@ def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength
         avPressure[barrier] = pressureArray.mean(axis = 0)
         avPressureErr[barrier] = pressureArray.std(axis = 0)
         print(avPressure[barrier])
-        ax.errorbar(timesteps[1:], avPressure[barrier], yerr = avPressureErr[barrier],
+        ax.errorbar(timesteps, avPressure[barrier], yerr = avPressureErr[barrier],
                     label = f"barrier = {barrier}kT")
 
     ax.set_xlabel("simulation frame (semi log)")

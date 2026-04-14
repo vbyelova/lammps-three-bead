@@ -11,6 +11,7 @@ import pwlf
 
 from collections import defaultdict
 from .parseDump import *
+from .calcPercolation import *
 
 def boxCounting(filename, boxLength, timesteps, percDims, atPerc):
     """A function to count the number of particles in given boxLength intervals. First the number of voxels and
@@ -29,21 +30,23 @@ def boxCounting(filename, boxLength, timesteps, percDims, atPerc):
     numVoxels = [int(boxLength/vSize) for vSize in voxelSizes]
     voxelSizes = [boxLength/ numDivs for numDivs in numVoxels]
     print("initialised arrays for box counting..")
+    print(f"currently in {filename}")
+    print(percDims)
 
     if atPerc == True:
-        for dim in percDims:
-            if dim == 3:
-                percAtFrame = percDims.index(dim)
-                continue
+        percAtFrame = percDims.index(3)
     elif atPerc == False:
-        percAtFrame = len(timesteps) - 1
+        percAtFrame = particles[0].properties.shape[0] - 1
+        print("false, num frames is ", percAtFrame)
 
+    print(f"currently in {filename}")
     for vNum, v in enumerate(numVoxels):
         bins = np.linspace(- halfLength, halfLength, v + 1)
       
         uniqueVoxels = set()
         print("made bins for boxLength size", vNum + 1 )
         
+        print(particles[0].properties)
         for pNum, p in enumerate(particles):
             x = p.properties[percAtFrame, 1]
             y = p.properties[percAtFrame, 2]
@@ -58,7 +61,7 @@ def boxCounting(filename, boxLength, timesteps, percDims, atPerc):
         #print("unique boxLength counted")
         #print(len(uniqueVoxels), v)
         totalUniqueVoxels.append([voxelSizes[vNum], len(uniqueVoxels)])
-    print(totalUniqueVoxels)
+    print("voxels size and number of particles per voxel: ", totalUniqueVoxels)
     return np.array(totalUniqueVoxels)
         
 
@@ -104,7 +107,7 @@ def calcFractalDimension(unfoldBarrier, refoldBarrier, runNum, vf, numMol, total
     #     plt.close()
     #     return 1, trend[0]
 
-def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps, percDims, atPerc):
+def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps, atPerc):
     """finds the fractal dimension for each run for each unfolding barrier and also calculates the average
         correlation length. Can find this for either at percolation point or in final frame of sim."""
 
@@ -120,6 +123,7 @@ def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
     avCorrLengthErr = {}
 
     for barrier in unfoldBarriers:
+        validRuns = 0
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
         if atPerc == True:
             atPercString = "AtPerc"
@@ -130,7 +134,15 @@ def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
 
             for runNum in range(numRuns):
                 filename = f"Run{runNum}_{conditions}"
-
+                percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol, timesteps)
+                if atPerc == True and 3 not in percDims:
+                    print(f"{conditions} run {runNum} did not percolate, skipping" )
+                    with open(f"../runs/{conditions}/analysisNotes.txt", "w") as f:
+                        f.write(f"{conditions} run {runNum} did not percolate, skipped during fractal dim "
+                                f"analysis.\n Maximum percolation dimension = {max(percDims)}\n")
+                        f.close()
+                    continue
+                validRuns += 1
                 totalUniqueVoxels = boxCounting(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl",
                                                 boxLength, timesteps, percDims, atPerc)
                 dimsAndBreak = calcFractalDimension(barrier, refoldBarrier, runNum, vf, numMol, 
@@ -146,12 +158,12 @@ def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
                 if dimsAndBreak[0] == 1:
                     fractalDim[barrier].append(dimsAndBreak[1])
 
-            fractalDimMean[barrier] = sum(fractalDim[barrier]) / numRuns
+            fractalDimMean[barrier] = sum(fractalDim[barrier]) / validRuns
             for val in fractalDim[barrier]:
                 fractalDimError[barrier].append((val - fractalDimMean[barrier])**2)
         
-            finalFractalDimsError.append(np.sqrt(sum(fractalDimError[barrier]) / numRuns))  
-            finalFractalDims.append(sum(fractalDim[barrier]) / numRuns)
+            finalFractalDimsError.append(np.sqrt(sum(fractalDimError[barrier]) / validRuns))  
+            finalFractalDims.append(sum(fractalDim[barrier]) / validRuns)
 
             print(f"fractal dimensions for unfolding barrier = {barrier}: {fractalDim[barrier]}")
             
@@ -163,16 +175,15 @@ def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
 
     return finalFractalDims, finalFractalDimsError, avCorrLength, avCorrLengthErr
 
-def plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps, percDims):
+def plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps):
+
     """plots a scatter graph of what the average fractal dimension is with each unfolding barrier
         at percolation and at the end of the simulation."""
-    atPercFractalDims = findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, 
-                                           vf, numMol, boxLength, timesteps, percDims, True)
-    atPercFinalFractalDims, atPercFinalFractalDimsError = atPercFractalDims[0], atPercFractalDims[1]
+    with open(f"../runs/boxLength{boxLength}/data/atPercFractalDims.pkl", "wb") as f:
+        atPercFinalFractalDims, atPercFinalFractalDimsError, atPercAvCorrLength, atPercAvCorrLengthErr =  pickle.load(f)
 
-    simEndFractalDims = findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, 
-                                           vf, numMol, boxLength, timesteps, percDims, False)
-    simEndFinalFractalDims, simEndFinalFractalDimsError = simEndFractalDims[0], simEndFractalDims[1]    
+    with open(f"../runs/boxLength{boxLength}/data/simEndFractalDims.pkl", "wb") as f:
+        simEndFinalFractalDims, simEndFinalFractalDimsError, simEndAvCorrLength, simEndAvCorrLengthErr =  pickle.load(f)  
 
     barWidth = 0.35
     x = np.arange(len(unfoldBarriers))
@@ -191,9 +202,6 @@ def plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, bo
     plt.savefig(f"../runs/boxLength{boxLength}/fractalDim_vf{vf}.png")
     plt.close()
 
-    atPercAvCorrLength, atPercAvCorrLengthErr = atPercFractalDims[2], atPercFractalDims[3]
-    simEndAvCorrLength, simEndAvCorrLengthErr = simEndFractalDims[2], simEndFractalDims[3]
-
     fig, ax = plt.subplots()
     ax.bar(x - barWidth / 2, [atPercAvCorrLength[b] for b in unfoldBarriers],
             yerr = [atPercAvCorrLengthErr[b] for b in unfoldBarriers],
@@ -210,5 +218,5 @@ def plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, bo
     plt.savefig(f"../runs/boxLength{boxLength}/corrLength_vf{vf}.png")
     plt.close()
 
-    return
-
+    return (atPercFinalFractalDims, atPercFinalFractalDimsError, simEndFinalFractalDims, simEndFinalFractalDimsError,
+            atPercAvCorrLength, atPercAvCorrLengthErr, simEndAvCorrLength, simEndAvCorrLengthErr)
