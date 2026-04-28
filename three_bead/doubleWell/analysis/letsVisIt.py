@@ -15,7 +15,7 @@ from modules.parseRDF import *
 from modules.loadForVis import *
 
 # let's get the system data first
-unfoldBarriers = [3]
+unfoldBarriers = [2]
 refoldBarrier = 2
 numRuns = 1
 vf = 0.04
@@ -25,7 +25,7 @@ boxLength = 100
 for barrier in unfoldBarriers:
     conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
     for runNum in range(numRuns):
-        filename = f"Run{runNum}_{conditions}"
+        filename = f"Run5_{conditions}"
         systemData = parseSystemData(f"../runs/{conditions}/{filename}/output/systemData.txt")
 
         boxLength, Npar, Nsteps, Nwrite, equilTime = systemData[0], systemData[1], systemData[2], systemData[3], systemData[4]
@@ -45,7 +45,7 @@ for barrier in unfoldBarriers:
 
         # check if particle trajectories have been parsed
         if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl"):
-            data = readData(f"../runs/{conditions}/{filename}/output/dump.lammpstrj", Nsteps, Nwrite, Npar, equilTime)
+            data = readData(f"../runs/{conditions}/{filename}/output/vis.lammpstrj", Nsteps, Nwrite, Npar, equilTime)
             particles, timesteps = data[0], data[1]
             with open(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl", "wb") as f:
                 pickle.dump(particles, f)
@@ -57,23 +57,23 @@ for barrier in unfoldBarriers:
             with open(f"../runs/{conditions}/{filename}/analysis/timesteps.pkl", "rb") as f:
                 timesteps = pickle.load(f)
 
-        # check if bonds have been counted yet
-        if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl"):
-            nBonds = totalBonds(f"../runs/{conditions}/{filename}/output/nbonds.dat")
-            with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "wb") as f:
-                pickle.dump(nBonds, f)
-        if os.path.exists(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl"):
-            with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
-                nBonds = pickle.load(f)
+        # # check if bonds have been counted yet
+        # if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl"):
+        #     nBonds = totalBonds(f"../runs/{conditions}/{filename}/output/nbonds.dat")
+        #     with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "wb") as f:
+        #         pickle.dump(nBonds, f)
+        # if os.path.exists(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl"):
+        #     with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
+        #         nBonds = pickle.load(f)
         
-        # extract bond information e.g. bonded pairs, forces etc
-        if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl"):
-            bondInfo = parseBondInfo(barrier, refoldBarrier, runNum, vf, numMol, nBonds, boxLength, timesteps)
-            with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "wb") as f:
-                pickle.dump(bondInfo, f)
-        if os.path.exists(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl"):
-            with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "rb") as f:
-                bondInfo = pickle.load(f)
+        # # extract bond information e.g. bonded pairs, forces etc
+        # if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl"):
+        #     bondInfo = parseBondInfo(barrier, refoldBarrier, runNum, vf, numMol, nBonds, boxLength, timesteps)
+        #     with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "wb") as f:
+        #         pickle.dump(bondInfo, f)
+        # if os.path.exists(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl"):
+        #     with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "rb") as f:
+        #         bondInfo = pickle.load(f)
 
         # if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDims.pkl"):
         #     frameByFramePerc(particles, f"../runs/{conditions}/{filename}/output/bondinfo.dat",
@@ -89,7 +89,6 @@ for barrier in unfoldBarriers:
         # if os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDims.pkl"):
         #     with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "rb") as f:
         #         percDims = pickle.load(f)
-
 
 
 angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol)

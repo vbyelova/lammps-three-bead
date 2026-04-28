@@ -46,7 +46,6 @@ def boxCounting(filename, boxLength, timesteps, percDims, atPerc):
         uniqueVoxels = set()
         print("made bins for boxLength size", vNum + 1 )
         
-        print(particles[0].properties)
         for pNum, p in enumerate(particles):
             x = p.properties[percAtFrame, 1]
             y = p.properties[percAtFrame, 2]
@@ -65,15 +64,16 @@ def boxCounting(filename, boxLength, timesteps, percDims, atPerc):
     return np.array(totalUniqueVoxels)
         
 
-def calcFractalDimension(unfoldBarrier, refoldBarrier, runNum, vf, numMol, totalUniqueVoxels, boxLength, timesteps, percDims, atPerc):
+def calcFractalDimension(unfoldBarrier, refoldBarrier, runNum, vf, numMol, totalUniqueVoxels, boxLength, percDims, atPerc):
     """calculates the fractal dimension for a single run"""
     conditions = f"unfold{unfoldBarrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
     filename = f"Run{runNum}_{conditions}"
-    
+    with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+        timesteps = pickle.load(f)
     if atPerc == True:
-        atPercString = "at percolation"
+        atPercString = "AtPercolation"
     elif atPerc == False:
-        atPercString = "at end of sim"
+        atPercString = "SimEnd"
     logNumUniqueVoxels = np.array([np.log(i) for i in totalUniqueVoxels[:,1]])
     logInverseVoxelSizes = np.array([np.log(1 / i) for i in totalUniqueVoxels[:,0]])
 
@@ -94,7 +94,7 @@ def calcFractalDimension(unfoldBarrier, refoldBarrier, runNum, vf, numMol, total
     plt.plot(xHat, yHat, "-", color = "purple")
     plt.xlim(math.floor(min(logInverseVoxelSizes)), int(max(logInverseVoxelSizes)))
     plt.tight_layout()
-    plt.savefig(f"../runs/{conditions}/{filename}/analysis/figs/boxCounting")
+    plt.savefig(f"../runs/{conditions}/{filename}/analysis/figs/boxCounting{atPercString}")
     plt.close()
     return 2, np.abs(model.slopes[1]), breaks[1]
 
@@ -107,7 +107,7 @@ def calcFractalDimension(unfoldBarrier, refoldBarrier, runNum, vf, numMol, total
     #     plt.close()
     #     return 1, trend[0]
 
-def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps, atPerc):
+def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, atPerc):
     """finds the fractal dimension for each run for each unfolding barrier and also calculates the average
         correlation length. Can find this for either at percolation point or in final frame of sim."""
 
@@ -123,6 +123,8 @@ def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
     avCorrLengthErr = {}
 
     for barrier in unfoldBarriers:
+        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as t:
+            timesteps = pickle.load(t)
         validRuns = 0
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
         if atPerc == True:
@@ -137,10 +139,10 @@ def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
                 percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol, timesteps)
                 if atPerc == True and 3 not in percDims:
                     print(f"{conditions} run {runNum} did not percolate, skipping" )
-                    with open(f"../runs/{conditions}/analysisNotes.txt", "w") as f:
-                        f.write(f"{conditions} run {runNum} did not percolate, skipped during fractal dim "
+                    with open(f"../runs/{conditions}/analysisNotes.txt", "w") as s:
+                        s.write(f"{conditions} run {runNum} did not percolate, skipped during fractal dim "
                                 f"analysis.\n Maximum percolation dimension = {max(percDims)}\n")
-                        f.close()
+                        s.close()
                     continue
                 validRuns += 1
                 totalUniqueVoxels = boxCounting(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl",
@@ -175,14 +177,14 @@ def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
 
     return finalFractalDims, finalFractalDimsError, avCorrLength, avCorrLengthErr
 
-def plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps):
+def plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength):
 
     """plots a scatter graph of what the average fractal dimension is with each unfolding barrier
         at percolation and at the end of the simulation."""
-    with open(f"../runs/boxLength{boxLength}/data/atPercFractalDims.pkl", "wb") as f:
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/atPercFractalDims.pkl", "rb") as f:
         atPercFinalFractalDims, atPercFinalFractalDimsError, atPercAvCorrLength, atPercAvCorrLengthErr =  pickle.load(f)
 
-    with open(f"../runs/boxLength{boxLength}/data/simEndFractalDims.pkl", "wb") as f:
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/simEndFractalDims.pkl", "rb") as f:
         simEndFinalFractalDims, simEndFinalFractalDimsError, simEndAvCorrLength, simEndAvCorrLengthErr =  pickle.load(f)  
 
     barWidth = 0.35
@@ -199,7 +201,7 @@ def plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, bo
     ax.set_xlabel("Unfolding barrier (kT)")
     ax.set_ylabel("Fractal dimension")
     ax.set_title("Fractal dimension through box counting method")
-    plt.savefig(f"../runs/boxLength{boxLength}/fractalDim_vf{vf}.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/fractalDim_vf{vf}.png")
     plt.close()
 
     fig, ax = plt.subplots()
@@ -215,7 +217,7 @@ def plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, bo
     ax.set_xlabel("Unfolding barrier (kT)")
     ax.set_ylabel(r"correlation length $\xi$")
     ax.set_title("Cluster sizes at different simulation points")
-    plt.savefig(f"../runs/boxLength{boxLength}/corrLength_vf{vf}.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/corrLength_vf{vf}.png")
     plt.close()
 
     return (atPercFinalFractalDims, atPercFinalFractalDimsError, simEndFinalFractalDims, simEndFinalFractalDimsError,

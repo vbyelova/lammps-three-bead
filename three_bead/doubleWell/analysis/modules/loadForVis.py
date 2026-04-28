@@ -46,9 +46,11 @@ def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, particles, timestep
     
     parRadius = 2 ** (1/6) * 0.4
     
-    minAngle = min(min(angles[frame] for frame in range(len(timesteps))))
-    maxAngle = max(max(angles[frame] for frame in range(len(timesteps))))
-    for frame in range(len(timesteps)):
+    frames = len(timesteps)
+    minAngle = min(min(angles.values()))
+    maxAngle = max(max(angles.values()))
+    print(minAngle, maxAngle)
+    for frame in range(frames):
         frame_cgo = []
         
         for num, p in enumerate(particles):
@@ -64,7 +66,6 @@ def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, particles, timestep
             
             frame_cgo.extend([cgo.COLOR, r, g, b, cgo.SPHERE, x, y, z, parRadius])
 
-        print(f"frame: {frame}. min angle: {min(angles[frame])}. max angle: {max(angles[frame])}")    
         cmd.load_cgo(frame_cgo, f"angle_unfold{barrier}_Run{runNum}_Vf{vf}_mol{numMol}", state = frame + 1)
         
     cmd.zoom("all", buffer = 5)
@@ -75,7 +76,7 @@ def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, particles, timestep
     # framesToMp4(f"Run{runNum}_Vf{vf}_mol{numMol}.mp4", framesDir, fps = 10)
     return
 
-def loadCoordVis(barrier, refoldBarrier, runNum ,vf, numMol, particles, timesteps, parCoordination):
+def loadCoordVis(barrier, refoldBarrier, runNum, vf, numMol, particles, timesteps, parCoordination):
 
     pymol.finish_launching()
     

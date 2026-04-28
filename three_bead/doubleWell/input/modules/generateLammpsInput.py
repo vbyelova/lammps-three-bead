@@ -5,7 +5,7 @@ from numpy import random
 from random import randint
 
 def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom):
-    Nsteps = 200000 
+    Nsteps = 400000 
     equilTime = 120000
     r_cutoff = 1.112462048
     seed = randint(100000, 999999)

@@ -16,14 +16,13 @@ from modules.generateRDF import *
 # first input value is unfolding barrier height
 # second input value is minimum energy for unfolded state
 
-barrierToUnfold = [1, 5]
+barrierToUnfold = [1, 2, 3, 4, 5]
 barrierToRefold = 2
 
-numRuns = 3
-vf = [0.02, 0.04]
+numRuns = 10
+vf = [0.04]
 
-boxLength = 50
-
+boxLength = 100
 prob = 1 # probability of unfolding
 bondsPerAtom = 2 
 

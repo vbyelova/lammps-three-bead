@@ -66,8 +66,14 @@ def RDFnumba(positions, boxLength, dr):
                 
     return rdfSet        
 
-def posRDF(barrier, refoldBarrier, runNum, Vf, numMol, boxLength, particles, timesteps):
+def posRDF(barrier, refoldBarrier, runNum, Vf, numMol, boxLength, particles):
     """calculates the positional radial distribution function"""
+
+    conditions = f"unfold{barrier}_refold{2}_Vf{Vf}_mol{numMol}"
+    filename = f"Run{runNum}_{conditions}"
+
+    with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+        timesteps = pickle.load(f)
     parRadius = 2 ** (1/6)
     boxVol = boxLength ** 3
     dr = 0.005 * boxLength
@@ -129,7 +135,7 @@ def avPosRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, time
     ax.set_ylabel("g(r)")
     ax.legend()
     ax.set_title(f"RDF for vf = {vf}")
-    plt.savefig(f"../runs/boxLength{boxLength}/rdf{vf}.png")
-    plt.close()
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/rdf{vf}.png")
+    plt.show()
     print(f"plotted rdf for vf = {vf}..")
     return avRDFs, avRDFsErr, shellBounds
