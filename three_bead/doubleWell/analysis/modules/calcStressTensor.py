@@ -97,9 +97,9 @@ def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength
     fig, ax = plt.subplots()
     for barrier in unfoldBarriers:
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
-        frames = [n for n in range(0, int(len(timesteps)))]
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
+        frames = [n for n in range(0, int(len(timesteps)))]
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
             
@@ -108,7 +108,7 @@ def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength
             with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "rb") as f:
                 bondInfo = pickle.load(f)
             avStressTensors = calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol,
-                                               nBonds, bondInfo, boxLength, timesteps)
+                                               nBonds, bondInfo, boxLength)
             runPressure = [np.trace(tensor) / 3 for tensor in avStressTensors]
             allPressure[barrier].append(runPressure)
         

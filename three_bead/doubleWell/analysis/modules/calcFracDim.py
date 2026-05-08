@@ -57,8 +57,6 @@ def boxCounting(filename, boxLength, timesteps, percDims, atPerc):
 
             uniqueVoxels.add((xVox, yVox, zVox))
         
-        #print("unique boxLength counted")
-        #print(len(uniqueVoxels), v)
         totalUniqueVoxels.append([voxelSizes[vNum], len(uniqueVoxels)])
     print("voxels size and number of particles per voxel: ", totalUniqueVoxels)
     return np.array(totalUniqueVoxels)
@@ -123,10 +121,11 @@ def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
     avCorrLengthErr = {}
 
     for barrier in unfoldBarriers:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as t:
             timesteps = pickle.load(t)
         validRuns = 0
-        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
         if atPerc == True:
             atPercString = "AtPerc"
         elif atPerc == False:
@@ -136,7 +135,7 @@ def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
 
             for runNum in range(numRuns):
                 filename = f"Run{runNum}_{conditions}"
-                percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol, timesteps)
+                percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol)
                 if atPerc == True and 3 not in percDims:
                     print(f"{conditions} run {runNum} did not percolate, skipping" )
                     with open(f"../runs/{conditions}/analysisNotes.txt", "w") as s:
@@ -148,7 +147,7 @@ def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
                 totalUniqueVoxels = boxCounting(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl",
                                                 boxLength, timesteps, percDims, atPerc)
                 dimsAndBreak = calcFractalDimension(barrier, refoldBarrier, runNum, vf, numMol, 
-                                                    totalUniqueVoxels, boxLength, timesteps, percDims, atPerc)
+                                                    totalUniqueVoxels, boxLength, percDims, atPerc)
                 if dimsAndBreak[0] == 2:
                     df = dimsAndBreak[1]
                     breakpoint = dimsAndBreak[2]

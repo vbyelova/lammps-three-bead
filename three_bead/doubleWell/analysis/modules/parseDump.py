@@ -2,6 +2,7 @@
 # Victoria Byelova
 
 import numpy as np
+import math
 import matplotlib.pyplot as plt
 import pickle
 import re
@@ -25,7 +26,6 @@ def parseSystemData(name):
 def readData(name, numStep, everyN, numPar, equilTime):
     """ A function to read in data from a lammps dump file and parse it into arrays."""
     # initialise counters
-
     frame = 0
     counter = 0
     cols = 6
@@ -50,7 +50,7 @@ def readData(name, numStep, everyN, numPar, equilTime):
             if re.search(pattern, line):
                 counter += 1
                 parts = line.split()
-                num = int(parts[0]) - 1
+                num = int(parts[0]) - 1 # change to 0 indexing for python
 
     # split up line and save into correct slot in array
                 for x in range(0, cols):
@@ -85,7 +85,7 @@ def parseBondInfo(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, boxLength)
             if re.search(r"\d+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+", line):
                 #print("matched")
                 lineData = line.rsplit()
-                num = int(lineData[0]) - 1
+                num = int(lineData[0]) - 1 # change to 0 indexing
                 for x in range(0, 9):
                     bondInfo[frame][num].properties[0 + x] = lineData[x]
                 
@@ -162,7 +162,7 @@ def parseForPercolation(particles, filename, nBonds, boxLength, timesteps):
     with open(filename, "r") as f:
         for line in f:
             if re.search(r"\d+\s+\d+\s+\d+", line):
-                atom1 = int(line.rsplit()[1]) - 1
+                atom1 = int(line.rsplit()[1]) - 1 # change to 0 indexing
                 atom2 = int(line.rsplit()[2]) - 1
                 dx = particles[atom1].properties[frame, 1] - particles[atom2].properties[frame, 1]
                 dy = particles[atom1].properties[frame, 2] - particles[atom2].properties[frame, 2]
@@ -189,21 +189,23 @@ def frameByFramePerc(barrier, refoldBarrier, runNum, vf, numMol, boxLength):
     frame = 0
     conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
     filename = f"Run{runNum}_{conditions}"
-    with open(f"../{conditions}/{filename}/analysis/nBonds.pkl", "rb") as bondsfile:
+    with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as bondsfile:
         nBonds = pickle.load(bondsfile)
     with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
         timesteps = pickle.load(f)
-    with open(f"../{conditions}/{filename}/analysis/particleTraj.pkl", "rb") as parfile:
+    with open(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl", "rb") as parfile:
         particles = pickle.load(parfile)
-    with open(f"../{conditions}/{filename}/output/bondinfo.dat", "r") as f:
-        with open(f"../{conditions}/{filename}/analysis/percinfo.txt", "w") as w:
+    print(len(particles), " is len particles")
+    print(numMol * 3, " is numPar")
+    with open(f"../runs/{conditions}/{filename}/output/bondinfo.dat", "r") as f:
+        with open(f"../runs/{conditions}/{filename}/analysis/percinfo.txt", "w") as w:
             w.write(f"{timesteps[frame]}\n")
             w.write(f"{nBonds[frame]}\n")
             for line in f:
                 if re.search(r"\d+\s+\d+\s+\d+", line):
-
+                    
                     info = line.rsplit()
-                    atom1 = int(info[1]) - 1
+                    atom1 = int(info[1]) - 1 # change to 0 indexing
                     atom2 = int(info[2]) - 1
                     #print(atom1, atom2)
                     dx = particles[atom1].properties[frame, 1] - particles[atom2].properties[frame, 1]
@@ -345,7 +347,7 @@ def plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, Vf, boxLe
             with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "rb") as f:
                 bondInfo = pickle.load(f)            
             molCoordination = coordination(barrier, refoldBarrier, runNum, Vf, numMol,
-                                        nBonds, bondInfo, timesteps)
+                                        nBonds, bondInfo)
             avCoordinationPerFrame = molCoordination.mean(axis = 1)
             allCoordination[barrier].append(avCoordinationPerFrame)
         coordinationArray = np.array(allCoordination[barrier])
@@ -366,3 +368,90 @@ def plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, Vf, boxLe
     plt.close()
     print("plotted average molecule coordination..")
     return avCoordination, avCoordinationErr
+
+def plotTogether(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength):
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avNewUnfoldedMol.pkl", "rb") as f:
+        avNewUnfoldedMol, avNewUnfoldedMolErr = pickle.load(f)
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPercolation.pkl", "rb") as f:
+        avPercolation, avPercolationErr = pickle.load(f)
+    # with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPressure.pkl", "rb") as f:
+    #     avPressure, avPressureErr = pickle.load(f)
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/unfoldedOverTime.pkl", "rb") as f:
+        avUnfoldOverTime, avUnfoldOverTimeErr = pickle.load(f)
+    
+    fig, (ax1, ax2, ax3) = plt.subplots(3, sharex = True, figsize = (15, 15))
+    fig.subplots_adjust(wspace = 0, hspace = 0)
+    for barrier in unfoldBarriers:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_numMol{numMol}"
+        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+            timesteps = pickle.load(f)
+        ax1.errorbar(timesteps, avUnfoldOverTime[barrier], yerr = avUnfoldOverTimeErr[barrier],
+                     label = f"barrier = {barrier}kT")
+        ax2.errorbar(timesteps, avNewUnfoldedMol[barrier], yerr = avNewUnfoldedMolErr[barrier],
+                label = f"unfolding barrier = {barrier}kT")
+        ax3.errorbar(timesteps, avPercolation[barrier], yerr = avPercolationErr[barrier],
+                    label = f"barrier = {barrier}kT")
+        # ax4.errorbar(timesteps, avPressure[barrier], yerr = avPressureErr[barrier],
+        #             label = f"barrier = {barrier}kT")
+        
+    ax1.set_ylabel("number of unfolded molecules")
+    ax2.set_ylabel("new unfolded molecules")
+    ax3.set_ylabel("percolation dimension")
+    ax1.legend()
+    ax2.legend()
+    ax3.legend()
+#    ax4.set_ylabel("average pressure")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/sharedaxis_vf{vf}.png")
+    ax1.semilogx()
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/sharedaxis_vf{vf}_semilog.png")
+    plt.close()
+
+def plotTogetherShifted(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength):
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avNewUnfoldedMol.pkl", "rb") as f:
+        avNewUnfoldedMol, avNewUnfoldedMolErr = pickle.load(f)
+    # with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPercolation.pkl", "rb") as f:
+    #     avPercolation, avPercolationErr = pickle.load(f)
+    # with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPressure.pkl", "rb") as f:
+    #     avPressure, avPressureErr = pickle.load(f)
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/unfoldedOverTime.pkl", "rb") as f:
+        avUnfoldOverTime, avUnfoldOverTimeErr = pickle.load(f)
+    fig, (ax1, ax2) = plt.subplots(2, sharex = True, figsize = (15, 15))
+    fig.subplots_adjust(wspace = 0, hspace = 0)
+    for barrier in unfoldBarriers:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+            timesteps = pickle.load(f)
+            timesteps = np.array(timesteps)
+        percIndex = []
+        for runNum in range(numRuns):
+            filename = f"Run{runNum}_{conditions}"
+            with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "rb") as f:
+                percDims = pickle.load(f)
+                if 3 in percDims:
+                    percIndex.append(percDims.index(3))
+                else:
+                    print(f"no percolation in {conditions} run {runNum}")
+                    continue
+        avPercIndex = math.ceil(np.mean(percIndex))
+        percTimestep = timesteps[avPercIndex]
+        ax1.errorbar(timesteps - percTimestep, avUnfoldOverTime[barrier], yerr = avUnfoldOverTimeErr[barrier],
+                     label = f"barrier = {barrier}kT")
+        ax2.errorbar(timesteps - percTimestep, avNewUnfoldedMol[barrier], yerr = avNewUnfoldedMolErr[barrier],
+                label = f"unfolding barrier = {barrier}kT")
+        # ax3.errorbar(timesteps - percTimestep, avPercolation[barrier], yerr = avPercolationErr[barrier],
+        #             label = f"barrier = {barrier}kT")
+        # ax4.errorbar(timesteps, avPressure[barrier], yerr = avPressureErr[barrier],
+        #             label = f"barrier = {barrier}kT")
+        
+    ax1.set_ylabel("number of unfolded molecules")
+    ax2.set_ylabel("new unfolded molecules")
+#    ax3.set_ylabel("percolation dimension")
+    ax1.legend()
+    ax2.legend()
+#    ax3.legend()
+#    ax4.set_ylabel("average pressure")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/shifted_sharedaxis_vf{vf}.png")
+    ax1.semilogx()
+    ax1.set_xlabel("timesteps shifted")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/shifted_sharedaxis_vf{vf}_semilog.png")
+    plt.close()

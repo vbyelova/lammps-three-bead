@@ -43,7 +43,7 @@ def unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles):
     print("generated list of unfolded molecules..")
     return unfoldedMols
 
-def unfoldedOverTime(unfoldBarrier, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps):
+def unfoldedOverTime(unfoldBarrier, refoldBarrier, numRuns, vf, numMol, boxLength):
     """calculates number of molecules unfolded over course of simulation."""
     allUnfold = defaultdict(list)
     avUnfold = {}
@@ -52,6 +52,8 @@ def unfoldedOverTime(unfoldBarrier, refoldBarrier, numRuns, vf, numMol, boxLengt
     fig, ax = plt.subplots()
     for barrier in unfoldBarrier:
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+            timesteps = pickle.load(f)
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
 
@@ -155,12 +157,13 @@ def avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLeng
     totalNewUnfoldedMol = defaultdict(list)
     avNewUnfoldedMol = {}
     avNewUnfoldedMolErr = {}
-    fix, ax = plt.subplots()
+    fig, ax = plt.subplots()
+
     for barrier in unfoldBarriers:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
         for runNum in range(numRuns):
-            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
             filename = f"Run{runNum}_{conditions}"
             nBonds = totalBonds(f"../runs/{conditions}/{filename}/output/nbonds.dat")
             angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol)

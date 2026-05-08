@@ -16,7 +16,7 @@ from modules.generateRDF import *
 # first input value is unfolding barrier height
 # second input value is minimum energy for unfolded state
 
-barrierToUnfold = [1, 2, 3, 4, 5]
+barrierToUnfold = [4, 5]
 barrierToRefold = 2
 
 numRuns = 10
@@ -52,7 +52,6 @@ for volfrac in vf:
             if not os.path.exists(f"../runs/{conditions}/{filename}/input"):
                 os.makedirs(f"../runs/{conditions}/{filename}/input")
                 generateThreeBead(f"../runs/{conditions}/{filename}/input/{filename}.in", numMol, boxLength)
-            generateRDF(conditions, filename, boxLength, numMol, prob, bondsPerAtom)
             if not os.path.exists(f"../runs/{conditions}/{filename}/output"):
                 os.makedirs(f"../runs/{conditions}/{filename}/output")
                 generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom)
@@ -67,8 +66,5 @@ for volfrac in vf:
             for filename in files:
                 f.write(f"if not os.path.exists(f'../runs/{conditions}/{filename}/input/log.lammps'):\n")
                 f.write(f"\tprint('running simulation {filename}..')\n")
-                f.write(f"\tsubprocess.run(['mpirun', '-n', '1', 'lmp','-in','in.lammps'], cwd = '{filename}/input')\n\n")
-                f.write(f"if not os.path.exists(f'../runs/{conditions}/{filename}/input/log_rerun.lammps'):\n")
-                f.write(f"\tsubprocess.run(['mpirun', '-n', '1', 'lmp', '-in', 'rdf.lammps'],cwd = '{filename}/input')\n\n")
-
+                f.write(f"\tsubprocess.run(['lmp','-in','in.lammps'], cwd = '{filename}/input')\n\n")
 
