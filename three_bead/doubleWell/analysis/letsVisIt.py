@@ -18,8 +18,8 @@ from modules.loadForVis import *
 unfoldBarriers = [3]
 refoldBarrier = 2
 numRuns = 1
-vf = 0.04
-numMol = 18007
+vf = 0.07
+numMol = 31512
 boxLength = 100
 
 for barrier in unfoldBarriers:
@@ -60,9 +60,11 @@ for barrier in unfoldBarriers:
 
 
 
-angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol)
-unfoldedMols = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles)     
+        angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol)
+        unfoldedMols = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles)     
+        loadForceVis(barrier, refoldBarrier, runNum, vf, numMol, particles, unfoldedMols, angles)
+
 #parCoordination = particleCoordination(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInfo, timesteps)
 #loadCoordVis(barrier, refoldBarrier, runNum, vf, numMol, particles, timesteps, parCoordination)
-loadForceVis(barrier, refoldBarrier, runNum, vf, numMol, particles, unfoldedMols, angles)
+
 print("done :D")

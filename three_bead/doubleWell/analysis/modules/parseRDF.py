@@ -6,50 +6,16 @@ from collections import defaultdict
 
 from .parseDump import *
 
-def parseLammpsPosRDF(barrier, refoldBarrier, runNum, Vf, numMol):
-
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
-    filename = f"Run{runNum}_{conditions}"
-    rdf = defaultdict(list)
-    smolrdf = defaultdict(list)
-    with open(f"../runs/{conditions}/{filename}/output/rdf.dat", "r") as f:
-        for line in f:
-            if line.startswith("#"):
-                continue
-            parts = line.rsplit()
-            if len(parts) == 2:
-                frame = int(parts[0])
-            if len(parts) == 4:
-                distance = float(parts[1])
-                gofr = float(parts[2])
-                smolrdf[frame].append([distance, gofr])
-    with open(f"../runs/{conditions}/{filename}/output/bigRDF.dat", "r") as f:
-        for line in f:
-            if line.startswith("#"):
-                continue
-            parts = line.rsplit()
-            if len(parts) == 2:
-                frame = int(parts[0])
-            if len(parts) == 4:
-                distance = float(parts[1])
-                gofr = float(parts[2])
-                rdf[frame].append([distance, gofr])
-
-    plt.plot(np.array(rdf[frame])[:, 0], np.array(rdf[frame])[:, 1], "-", color = "blue")
-    plt.plot(np.array(smolrdf[frame])[:, 0], np.array(smolrdf[frame])[:, 1], "-", color = "red")
-    print(np.array(rdf[frame]))
-    plt.xlabel("distance")
-    plt.ylabel("g(r)")
-    plt.show()
-    return
-
 @jit
 def RDFnumba(positions, boxLength, dr):
-    numPar = len(positions)
     numBins = int(0.5 * boxLength / dr)
     rdfSet = np.zeros(numBins)
     for num1 in range(len(positions)):
         for num2 in range(len(positions)):
+            # check if rdf is between central molecules
+            if (num1 // 3 == (num1) // 3 and num1 // 3 ==(num1 - 1) // 3
+                and num2 // 3 == (num2) // 3 and num2 // 3 ==(num2 - 1) // 3):
+                continue
             if num1 == num2:
                 continue
             dx = positions[num2, 0] - positions[num1, 0]
@@ -67,18 +33,20 @@ def RDFnumba(positions, boxLength, dr):
     return rdfSet        
 
 def posRDF(barrier, refoldBarrier, runNum, Vf, numMol, boxLength, particles):
-    """calculates the positional radial distribution function"""
+    """calculates the positional radial distribution function. modified 
+        so that the central particle of each molecule only is taken into account"""
 
     conditions = f"unfold{barrier}_refold{2}_Vf{Vf}_mol{numMol}"
     filename = f"Run{runNum}_{conditions}"
-
+    print(f"currently on run {runNum} for barrier {barrier}")
     with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
         timesteps = pickle.load(f)
     parRadius = 2 ** (1/6)
     boxVol = boxLength ** 3
     dr = 0.005 * boxLength
     shellBounds = np.arange(0, 0.5 * boxLength, dr)
-    frame = len(timesteps) - 1
+    frames = particles[0].properties.shape[0]
+    frame = frames - 1
     rdfSet = np.zeros(len(shellBounds), dtype = np.float64)
     print("generated vals for final frame rdf..")
 
@@ -96,7 +64,7 @@ def posRDF(barrier, refoldBarrier, runNum, Vf, numMol, boxLength, particles):
         print(f"slice vol {sliceVol}")
         if sliceVol > 0:
             rdfSet[i] /= sliceVol
-            rdfSet[i] /= (numMol * 3)**2 / boxVol
+            rdfSet[i] /= (numMol)**2 / boxVol
     print("calculated rdf..")
     print(f"rdf set{i} {rdfSet[i]}")
     # fig, ax = plt.subplots()
@@ -108,26 +76,35 @@ def posRDF(barrier, refoldBarrier, runNum, Vf, numMol, boxLength, particles):
     # print("saved rdf plot..")
     return rdfSet, shellBounds
 
-def avPosRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps):
+def calcPosRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength):
     allRDFsets = defaultdict(list)
     avRDFs = {}
     avRDFsErr = {}
     fig, ax = plt.subplots()
     for barrier in unfoldBarriers:
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+            timesteps = pickle.load(f)
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
             with open(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl", "rb") as f:
                 particles = pickle.load(f)
 
             rdfSet, shellBounds = posRDF(barrier, refoldBarrier, runNum, vf, numMol, boxLength,
-                            particles, timesteps)
+                            particles)
             allRDFsets[barrier].append(rdfSet)
 
         rdfArray = np.array(allRDFsets[barrier])
         avRDFs[barrier] = rdfArray.mean(axis = 0)
         avRDFsErr[barrier] = rdfArray.std(axis = 0)
-        #print(f"shellbounds len {len(shellBounds)}, rdf stuff len {avRDFs[barrier]}")
+    return avRDFs, avRDFsErr, shellBounds
+
+def plotAvRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength):
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avRDF.pkl", "rb") as f:
+        avRDFs, avRDFsErr, shellBounds = pickle.load(f)
+        
+    fig, ax = plt.subplots()
+    for barrier in unfoldBarriers:
         ax.errorbar(shellBounds, avRDFs[barrier], yerr = avRDFsErr[barrier],
                     label = f"barrier = {barrier}kT")
         

@@ -191,28 +191,32 @@ def plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, bo
     fig, ax = plt.subplots()
     ax.bar(x - barWidth / 2, atPercFinalFractalDims,
             yerr = atPercFinalFractalDimsError,
-            width = barWidth, label = "at percolation", color = "hotpink")
+            width = barWidth, label = "at percolation", color = "chocolate")
     ax.bar(x + barWidth / 2, simEndFinalFractalDims,
             yerr = simEndFinalFractalDimsError,
-            width = barWidth, label = "at end of sim", color = "royalblue")
+            width = barWidth, label = "at end of sim", color = "saddlebrown")
     ax.set_xticks(x)
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
+          fancybox=True, shadow=True, ncol=2)
     ax.set_xticklabels(unfoldBarriers)
     ax.set_xlabel("Unfolding barrier (kT)")
     ax.set_ylabel("Fractal dimension")
-    ax.set_title("Fractal dimension through box counting method")
+    plt.tight_layout()
+    #ax.set_title("Fractal dimension through box counting method")
     plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/fractalDim_vf{vf}.png")
     plt.close()
 
     fig, ax = plt.subplots()
     ax.bar(x - barWidth / 2, [atPercAvCorrLength[b] for b in unfoldBarriers],
             yerr = [atPercAvCorrLengthErr[b] for b in unfoldBarriers],
-            width = barWidth, color = "hotpink", label = "at percolation")
+            width = barWidth, color = "goldenrod", label = "at percolation")
     ax.bar(x + barWidth / 2, [simEndAvCorrLength[b] for b in unfoldBarriers],
             yerr = [simEndAvCorrLengthErr[b] for b in unfoldBarriers],
-            width = barWidth, color = "royalblue", label = "at end of sim")
+            width = barWidth, color = "darkgoldenrod", label = "at end of sim")
     
     ax.set_xticks(x)
     ax.set_xticklabels(unfoldBarriers)
+    ax.legend()
     ax.set_xlabel("Unfolding barrier (kT)")
     ax.set_ylabel(r"correlation length $\xi$")
     ax.set_title("Cluster sizes at different simulation points")

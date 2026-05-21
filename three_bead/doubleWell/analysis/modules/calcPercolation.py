@@ -165,22 +165,29 @@ def plotPercolation(barrier, refoldBarrier, runNum, Vf, numMol, percDims):
     plt.show()
     return
 
-def plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength):
+def calcAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength):
     allPercolation = defaultdict(list)
     avPercolation = {}
     avPercolationErr = {}
 
     fig, ax = plt.subplots()
     for barrier in unfoldBarriers:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
-        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+            
+        
         frames = len(timesteps)
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
             with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "rb") as f:
                 percDims = pickle.load(f)
-            
+            with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
+                nBonds = pickle.load(f)
+            if len(nBonds) < 100: 
+                print(f"skipping run{runNum} barrier{barrier}")
+                continue
     
             if 3 in percDims:
                 while len(percDims) < frames:
@@ -189,8 +196,23 @@ def plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLen
 
         percolationArray = np.array(allPercolation[barrier])
         avPercolation[barrier] = percolationArray.mean(axis = 0)
-        avPercolationErr[barrier] = percolationArray.std(axis = 0)          
+        avPercolationErr[barrier] = percolationArray.std(axis = 0)     
+         
+    return avPercolation, avPercolationErr
 
+
+def plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength):
+        
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPercolation.pkl", "rb") as f:
+        avPercolation, avPercolationErr = pickle.load(f)
+
+    
+    fig, ax = plt.subplots()
+    for barrier in unfoldBarriers:  
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+
+        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+            timesteps = pickle.load(f)
         ax.errorbar(timesteps, avPercolation[barrier], yerr = avPercolationErr[barrier],
                     label = f"barrier = {barrier}kT")
 
@@ -198,5 +220,8 @@ def plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLen
     ax.set_ylabel("dimensions of percolation")
     ax.legend()
     plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/avPercolation_vf{vf}.png")
+    ax.semilogx()
+    ax.set_xlabel("log simulation frame")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/avPercolation_vf{vf}_semilog.png")
     plt.show()
     return avPercolation, avPercolationErr

@@ -8,6 +8,7 @@ import pickle
 import re
 import configparser
 
+from itertools import cycle
 from collections import defaultdict
 from .threeBeadClasses import *
 
@@ -64,13 +65,15 @@ def readData(name, numStep, everyN, numPar, equilTime):
     print("dump file processed..")
     return particles, timesteps
 
-def parseBondInfo(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, boxLength):
+def parseBondInfo(barrier, refoldBarrier, runNum, Vf, numMol, boxLength):
     """gets stress tensor information for each bond as fx, fy, fz, dx, dy and dz."""
     conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
     filename = f"Run{runNum}_{conditions}"
 
     with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
         timesteps = pickle.load(f)
+    with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
+        nBonds = pickle.load(f)
 
     frame = 0
     bondCounter = 0
@@ -344,6 +347,9 @@ def plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, Vf, boxLe
                     continue
             with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
                 nBonds = pickle.load(f)
+            if len(nBonds) < 100: 
+                print(f"skipping run{runNum} barrier{barrier}")
+                continue
             with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "rb") as f:
                 bondInfo = pickle.load(f)            
             molCoordination = coordination(barrier, refoldBarrier, runNum, Vf, numMol,
@@ -407,15 +413,17 @@ def plotTogether(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength):
     plt.close()
 
 def plotTogetherShifted(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength):
+    colors = ["maroon", "brown", "indianred", "lightcoral", "mistyrose"]
+
     with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avNewUnfoldedMol.pkl", "rb") as f:
         avNewUnfoldedMol, avNewUnfoldedMolErr = pickle.load(f)
-    # with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPercolation.pkl", "rb") as f:
-    #     avPercolation, avPercolationErr = pickle.load(f)
-    # with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPressure.pkl", "rb") as f:
-    #     avPressure, avPressureErr = pickle.load(f)
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPercolation.pkl", "rb") as f:
+        avPercolation, avPercolationErr = pickle.load(f)
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPressure.pkl", "rb") as f:
+        avPressure, avPressureErr = pickle.load(f)
     with open(f"../runs/boxLength{boxLength}/vf{vf}/data/unfoldedOverTime.pkl", "rb") as f:
         avUnfoldOverTime, avUnfoldOverTimeErr = pickle.load(f)
-    fig, (ax1, ax2) = plt.subplots(2, sharex = True, figsize = (15, 15))
+    fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, sharex = True, figsize = (15, 15))
     fig.subplots_adjust(wspace = 0, hspace = 0)
     for barrier in unfoldBarriers:
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
@@ -435,23 +443,25 @@ def plotTogetherShifted(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxL
         avPercIndex = math.ceil(np.mean(percIndex))
         percTimestep = timesteps[avPercIndex]
         ax1.errorbar(timesteps - percTimestep, avUnfoldOverTime[barrier], yerr = avUnfoldOverTimeErr[barrier],
-                     label = f"barrier = {barrier}kT")
+                     label = f"barrier = {barrier}kT", color = colors[barrier - 1])
         ax2.errorbar(timesteps - percTimestep, avNewUnfoldedMol[barrier], yerr = avNewUnfoldedMolErr[barrier],
-                label = f"unfolding barrier = {barrier}kT")
-        # ax3.errorbar(timesteps - percTimestep, avPercolation[barrier], yerr = avPercolationErr[barrier],
-        #             label = f"barrier = {barrier}kT")
-        # ax4.errorbar(timesteps, avPressure[barrier], yerr = avPressureErr[barrier],
-        #             label = f"barrier = {barrier}kT")
+                label = f"unfolding barrier = {barrier}kT", color = colors[barrier - 1])
+        ax3.errorbar(timesteps - percTimestep, avPercolation[barrier], yerr = avPercolationErr[barrier],
+                    label = f"barrier = {barrier}kT", color = colors[barrier - 1])
+        ax4.errorbar(timesteps, avPressure[barrier], yerr = avPressureErr[barrier],
+                    label = f"barrier = {barrier}kT", color = colors[barrier - 1])
         
     ax1.set_ylabel("number of unfolded molecules")
     ax2.set_ylabel("new unfolded molecules")
-#    ax3.set_ylabel("percolation dimension")
+    ax3.set_ylabel("percolation dimension")
     ax1.legend()
     ax2.legend()
-#    ax3.legend()
-#    ax4.set_ylabel("average pressure")
+    ax3.legend()
+    ax4.legend()
+    ax4.set_ylabel("average pressure")
     plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/shifted_sharedaxis_vf{vf}.png")
     ax1.semilogx()
     ax1.set_xlabel("timesteps shifted")
+    
     plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/shifted_sharedaxis_vf{vf}_semilog.png")
     plt.close()

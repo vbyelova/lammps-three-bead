@@ -89,12 +89,11 @@ def calcPressure(barrier, refoldBarrier, runNum, vf, numMol, nBonds, avStressTen
     plt.show()
     
 
-def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength):
+def calcAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength):
     allPressure = defaultdict(list)
     avPressure = {}
     avPressureErr = {}
 
-    fig, ax = plt.subplots()
     for barrier in unfoldBarriers:
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
@@ -105,6 +104,9 @@ def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength
             
             with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
                 nBonds = pickle.load(f)
+            if len(nBonds) < 100: 
+                print(f"skipping run{runNum} barrier{barrier}")
+                continue
             with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "rb") as f:
                 bondInfo = pickle.load(f)
             avStressTensors = calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol,
@@ -115,7 +117,19 @@ def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength
         pressureArray = np.array(allPressure[barrier])
         avPressure[barrier] = pressureArray.mean(axis = 0)
         avPressureErr[barrier] = pressureArray.std(axis = 0)
-        print(avPressure[barrier])
+
+    return avPressure, avPressureErr
+
+def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength):
+    
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPressure.pkl", "rb") as f:
+        avPressure, avPressureErr = pickle.load(f)
+
+    fig, ax = plt.subplots()
+    for barrier in unfoldBarriers:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+            timesteps = pickle.load(f)
         ax.errorbar(timesteps, avPressure[barrier], yerr = avPressureErr[barrier],
                     label = f"barrier = {barrier}kT")
 
@@ -129,5 +143,5 @@ def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength
     plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/pressure_vf{vf}_semilog.png")
     plt.close()
     print("plotted average pressure..")
-    return avPressure, avPressureErr
+    return 
 

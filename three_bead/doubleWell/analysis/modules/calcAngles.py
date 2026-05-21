@@ -5,10 +5,10 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 from .parseDump import *
 
-def calcAngles(barrier, refoldBarrier, runNum, vf, numMol):
+def calcAngles(barrier, refoldBarrier, runNum, vf, numMol, suffix):
     """saves angles of three bead molecules in each simulation frame."""
 
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
     filename = f"Run{runNum}_{conditions}"
     systemData = parseSystemData(f"../runs/{conditions}/{filename}/output/systemData.txt")
     boxLength, Npar, Nsteps, Nwrite, equilTime = systemData[0], systemData[1], systemData[2], systemData[3], systemData[4]
@@ -43,21 +43,25 @@ def unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles):
     print("generated list of unfolded molecules..")
     return unfoldedMols
 
-def unfoldedOverTime(unfoldBarrier, refoldBarrier, numRuns, vf, numMol, boxLength):
+def unfoldedOverTime(unfoldBarrier, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes):
     """calculates number of molecules unfolded over course of simulation."""
     allUnfold = defaultdict(list)
     avUnfold = {}
     avUnfoldErr = {}
 
     fig, ax = plt.subplots()
-    for barrier in unfoldBarrier:
-        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+    for barrier, suffix in zip(unfoldBarrier, suffixes):
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
-
-            angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol)
+            with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
+                nBonds = pickle.load(f)
+            if len(nBonds) < 100: 
+                print(f"skipping run{runNum} barrier{barrier}")
+                continue
+            angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, suffix)
             unfoldedMols = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles)
             totalMols = [len(unfoldedMols[frame]) for frame in range(len(timesteps))]
             allUnfold[barrier].append(totalMols)
@@ -81,10 +85,10 @@ def unfoldedOverTime(unfoldBarrier, refoldBarrier, numRuns, vf, numMol, boxLengt
     print("plotted graphs of total unfolded molecules over time..")
     return avUnfold, avUnfoldErr
 
-def bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol):
+def bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol, suffix):
     """plots a histogram of the final angles of the molecules in the system."""
 
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
     filename = f"Run{runNum}_{conditions}"
     angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol)
     finalFrameAngles = angles[int(len(angles)-1)]
@@ -100,7 +104,7 @@ def bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol):
     print("plotted histogram of angle distribution in system..")
     return
 
-def anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, timesteps):
+def anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes):
     """plots a histogram of average distribution of folded vs unfolded molecules with
         energy barrier."""
     totalFolded = defaultdict(list)
@@ -108,13 +112,22 @@ def anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLengt
     foldedMean = {}
     unfoldedMean = {}
     foldedError = []
-    unfoldedError = []
-    
-    finalframe = len(timesteps) - 1
-    
-    for barrier in unfoldBarriers:
+    unfoldedError = []    
+    for barrier, suffix in zip(unfoldBarriers, suffixes):
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+
+        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+            timesteps = pickle.load(f)
+        finalframe = len(timesteps) - 1
+
         for runNum in range(numRuns):
-            angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol)
+            filename = f"Run{runNum}_{conditions}"
+            with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
+                nBonds = pickle.load(f)
+            if len(nBonds) < 100:
+                print(f"skipping run {runNum} barrier {barrier}")
+                continue
+            angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, suffix)
             unfoldedMol = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles)
         
             numUnfolded = len(unfoldedMol[finalframe])
@@ -147,11 +160,12 @@ def anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLengt
     ax.set_ylabel("number of molecules")
     ax.legend()
     plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/barrierAnglePop_vf{vf}.png")
+    plt.show()
     plt.close()
     print("plotted folded vs unfolded population by simulation end..")
     return
 
-def avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength):
+def avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes):
     """plots a scatter graph of average unfolding events per timestep,
         compares against multiple unfolding barriers."""
     totalNewUnfoldedMol = defaultdict(list)
@@ -159,29 +173,33 @@ def avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLeng
     avNewUnfoldedMolErr = {}
     fig, ax = plt.subplots()
 
-    for barrier in unfoldBarriers:
-        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+    for barrier, suffix in zip(unfoldBarriers, suffixes):
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
             nBonds = totalBonds(f"../runs/{conditions}/{filename}/output/nbonds.dat")
-            angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol)
+            #print(f"len nBonds {len(nBonds)}, run{runNum} barrier{barrier}")
+            if len(nBonds) < 100: 
+                print(f"skipping run{runNum} barrier{barrier}")
+                continue
+            angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, suffix)
             unfoldedMols = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles)
             
             newUnfoldedCount = [0]
-            print(nBonds)
+            #print(nBonds)
             for frame in range(1, len(nBonds)):
                 newUnfoldedCount.append(len(unfoldedMols[frame]) - len(unfoldedMols[frame - 1]))
             
             totalNewUnfoldedMol[barrier].append(newUnfoldedCount)
-            print(totalNewUnfoldedMol[barrier])
+            #print(totalNewUnfoldedMol[barrier])
         
         newUnfoldedArray = np.array(totalNewUnfoldedMol[barrier])
         avNewUnfoldedMol[barrier] = newUnfoldedArray.mean(axis = 0)
         avNewUnfoldedMolErr[barrier] = newUnfoldedArray.std(axis = 0)
         ax.errorbar(timesteps, avNewUnfoldedMol[barrier], yerr = avNewUnfoldedMolErr[barrier],
-                label = f"unfolding barrier = {barrier}kT")
+                label = f"unfolding barrier = {barrier}kT {suffix}")
 
     ax.set_xlabel("simulation frame")
     ax.set_ylabel("number of new unfolding events")
