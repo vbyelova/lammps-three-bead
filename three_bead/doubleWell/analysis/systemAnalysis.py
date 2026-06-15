@@ -16,17 +16,22 @@ from modules.parseRDF import *
 from modules.calcPorosity import *
 
 # let's get the system data first
-unfoldBarriers = [1, 1, 2, 3, 4]
-suffixes = ["NOPERCOLATION", "", "", "", ""]
+unfoldBarriers = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
+suffixes = ["NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", ""]
 refoldBarrier = 2
-numRuns = 5
+numRuns = 10
 vf = 0.07
 numMol = 31512
 boxLength = 100
+bondsPerAtom = 2
 
 
 for barrier, suffix in zip(unfoldBarriers, suffixes):
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+    if bondsPerAtom == 2:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+    else:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+        
     for runNum in range(numRuns):
         filename = f"Run{runNum}_{conditions}"
         systemData = parseSystemData(f"../runs/{conditions}/{filename}/output/systemData.txt")
@@ -46,8 +51,10 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
             os.makedirs(f"../runs/boxLength{boxLength}")
         if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}"):
             os.makedirs(f"../runs/boxLength{boxLength}/vf{vf}")
-        if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/data"):
-            os.makedirs(f"../runs/boxLength{boxLength}/vf{vf}/data")
+        if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}"):
+            os.makedirs(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}")
+        if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data"):
+            os.makedirs(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data")
             with open(f"../runs/{conditions}/analysisNotes.txt", "w") as f:
                 f.write(f"# any extra info e.g. runs skipped will be noted here.\n")
                 f.close()
@@ -73,85 +80,72 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
         
         # extract bond information e.g. bonded pairs, forces etc
         if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl"):
-            bondInfo = parseBondInfo(barrier, refoldBarrier, runNum, vf, numMol, boxLength)
+            bondInfo = parseBondInfo(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom)
             with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "wb") as f:
                 pickle.dump(bondInfo, f)
 
         if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/densityUnfoldedCorr.pkl"):
-            meanCorr = densityUnfoldedCorrelation(barrier, refoldBarrier, runNum, vf, numMol, boxLength, suffix)
+            meanCorr = densityUnfoldedCorrelation(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, suffix)
             with open(f"../runs/{conditions}/{filename}/analysis/densityUnfoldedCorr.pkl", "wb") as f:
                 pickle.dump(meanCorr, f)
 
+        if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/angleDist.pkl"):
+            hist, bins, finalFrameAngles = bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, suffix)
+            with open(f"../runs/{conditions}/{filename}/analysis/angleDist.pkl", "wb") as f:
+                pickle.dump((hist, bins, finalFrameAngles), f)
 
-        # extract bonded pair information
-        # if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percBonds.pkl"):    
-        #     bondedPairs = parseForPercolation(particles,f"../runs/{conditions}/{filename}/output/bondinfo.dat",
-        #                                        nBonds, boxLength)
-        #     percolatedBonds, bondedAtoms = bondedPairs[0], bondedPairs[1]
-        #     with open(f"../runs/{conditions}/{filename}/analysis/percBonds.pkl", "wb") as f:
-        #         pickle.dump(percolatedBonds, f)
-        #     with open(f"../runs/{conditions}/{filename}/analysis/bondedPairs.pkl",  "wb") as f:
-        #         pickle.dump(bondedPairs, f)
-
-
-        if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDimsPerFrame.txt"):
-            if suffix == "NOPERCOLATION":
-                continue
-            else:
-                frameByFramePerc(barrier, refoldBarrier, runNum, vf, numMol, boxLength)
-                systemDataFile = f"../runs/{conditions}/{filename}/output/systemData.txt"
-                percInfoFile = f"../runs/{conditions}/{filename}/analysis/percinfo.txt"
-                outputFile = f"../runs/{conditions}/{filename}/analysis/percDimsPerFrame.txt"
-                subprocess.run(["./addingData/addingData", systemDataFile, percInfoFile, outputFile])
-        if suffix == "NOPERCOLATION":
-            continue
-        else:
-            percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol)
-            if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDims.pkl"):
-                with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "wb") as f:
-                    pickle.dump(percDims, f)
+#         if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDimsPerFrame.txt"):
+#             if suffix == "NOPERCOLATION":
+#                 continue
+#             else:
+#                 frameByFramePerc(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom)
+#                 systemDataFile = f"../runs/{conditions}/{filename}/output/systemData.txt"
+#                 percInfoFile = f"../runs/{conditions}/{filename}/analysis/percinfo.txt"
+#                 outputFile = f"../runs/{conditions}/{filename}/analysis/percDimsPerFrame.txt"
+#                 subprocess.run(["./addingData/addingData", systemDataFile, percInfoFile, outputFile])
+#         if suffix in ("NOPERCOLATIONNOLJ", "NOPERCOLATION"):
+#             continue
+#         else:
+#             percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol)
+#             if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDims.pkl"):
+#                 with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "wb") as f:
+#                     pickle.dump(percDims, f)
         
         
-        # if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/mainPores.pkl"):
-        #      mainPores = calcPorosity(barrier, refoldBarrier, runNum, vf, numMol, boxLength)
-        #      with open(f"../runs/{conditions}/{filename}/analysis/mainPores.pkl", "wb") as f:
-        #           pickle.dump(mainPores, f)
-        
-        
-# if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/data/atPercFractalDims.pkl"):
+# if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/atPercFractalDims.pkl"):
 #     atPercFinalFractalDims, atPercFinalFractalDimsError, atPercCorrLength, atPercCorrLengthErr = (
 #                                                                             findAllFractalDims(unfoldBarriers, refoldBarrier,
 #                                                                             numRuns, vf, numMol, boxLength,
-#                                                                             True))
-#     with open(f"../runs/boxLength{boxLength}/vf{vf}/data/atPercFractalDims.pkl", "wb") as f:
+#                                                                             True, bondsPerAtom, suffixes))
+#     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/atPercFractalDims.pkl", "wb") as f:
 #          pickle.dump((atPercFinalFractalDims, atPercFinalFractalDimsError, atPercCorrLength, atPercCorrLengthErr), f)
 
 #     simEndFinalFractalDims, simEndFinalFractalDimsError, simEndCorrLength, simEndCorrLengthErr = (
 #                                                                             findAllFractalDims(unfoldBarriers, refoldBarrier,
 #                                                                             numRuns, vf, numMol, boxLength,
-#                                                                             False))
-#     with open(f"../runs/boxLength{boxLength}/vf{vf}/data/simEndFractalDims.pkl", "wb") as f:
+#                                                                             False, bondsPerAtom, suffixes))
+#     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/simEndFractalDims.pkl", "wb") as f:
 #          pickle.dump((simEndFinalFractalDims, simEndFinalFractalDimsError, simEndCorrLength, simEndCorrLengthErr), f)
 
-# if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/data/avPercolation.pkl"):
-#     avPercolation, avPercolationErr = calcAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength)
-#     with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPercolation.pkl", "wb") as f:
+# if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avPercolation.pkl"):
+#     avPercolation, avPercolationErr = calcAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffix)
+#     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avPercolation.pkl", "wb") as f:
 #             pickle.dump((avPercolation, avPercolationErr), f)
 
-# if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/data/avRDF.pkl"):
-#     avRDFs, avRDFsErr, shellBounds = calcPosRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength)
-#     with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avRDF.pkl", "wb") as f:
-#         pickle.dump((avRDFs, avRDFsErr, shellBounds), f)
-#     plotAvRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength)
+if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avRDF.pkl"):
+    avRDFs, avRDFsErr, shellBounds = calcPosRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avRDF.pkl", "wb") as f:
+        pickle.dump((avRDFs, avRDFsErr, shellBounds), f)
+    plotAvRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
 
-if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/data/avNewUnfoldedMol.pkl"):
-    avNewUnfoldedMol, avNewUnfoldedMolErr = avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes)
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avNewUnfoldedMol.pkl", "wb") as f:
+if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avNewUnfoldedMol.pkl"):
+    avNewUnfoldedMol, avNewUnfoldedMolErr = avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avNewUnfoldedMol.pkl", "wb") as f:
         pickle.dump((avNewUnfoldedMol, avNewUnfoldedMolErr), f)
 
-if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/data/unfoldedOverTime.pkl"):
-    avUnfoldOverTime, avUnfoldOverTimeErr = unfoldedOverTime(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes)
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/unfoldedOverTime.pkl", "wb") as f:
+if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/unfoldedOverTime.pkl"):
+    avUnfoldOverTime, avUnfoldOverTimeErr = unfoldedOverTime(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/unfoldedOverTime.pkl", "wb") as f:
         pickle.dump((avUnfoldOverTime, avUnfoldOverTimeErr), f)
 
 # if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/data/avPressure.pkl"):
@@ -159,18 +153,23 @@ if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/data/unfoldedOverTim
 #     with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPressure.pkl", "wb") as f:
 #         pickle.dump((avPressure, avPressureErr), f)
 
-# if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/data/avCoordination.pkl"):
-#     avCoordination, avCoordinationErr = plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength)
-#     with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avCoordination.pkl", "wb") as f:
-#         pickle.dump((avCoordination, avCoordinationErr), f)
+if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avCoordination.pkl"):
+    avCoordination, avCoordinationErr = plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, suffixes)
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avCoordination.pkl", "wb") as f:
+        pickle.dump((avCoordination, avCoordinationErr), f)
 
-# avCorrFuncs, avCorrFuncsErr = calcAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes)
-# with open(f"../runs/boxLength{boxLength}/vf{vf}/data/densityUnfoldedCorr.pkl", "wb") as f:
-#     pickle.dump((avCorrFuncs, avCorrFuncsErr), f)
-# plotAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes)
+#plotAvBimodalAngle(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes)
+
+# avAllCounts, avAllCountsErr, avAllMeanAngles, avAllMeanAnglesErr, avCorrFuncs, avCorrFuncsErr = calcAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier,
+#                                                                                                                            numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
+# with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}data/densityUnfoldedCorr.pkl", "wb") as f:
+#    pickle.dump((avAllCounts, avAllCountsErr, avAllMeanAngles, avAllMeanAnglesErr, avCorrFuncs, avCorrFuncsErr), f)
+# plotAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
 #plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength)
 #plotTogetherShifted(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength)
 #plotTogether(unfoldBarriers, refoldBarrier, numRuns, numMol ,vf, boxLength)
-anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes)
-#plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength)
+anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
+plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength)
+plotUnfoldedOverTime(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes)
+#plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes)
 print("done :D")

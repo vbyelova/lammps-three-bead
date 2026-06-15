@@ -65,9 +65,13 @@ def readData(name, numStep, everyN, numPar, equilTime):
     print("dump file processed..")
     return particles, timesteps
 
-def parseBondInfo(barrier, refoldBarrier, runNum, Vf, numMol, boxLength):
+def parseBondInfo(barrier, refoldBarrier, runNum, Vf, numMol, boxLength, bondsPerAtom):
     """gets stress tensor information for each bond as fx, fy, fz, dx, dy and dz."""
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
+    if bondsPerAtom == 2:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
+    else:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}"
+
     filename = f"Run{runNum}_{conditions}"
 
     with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
@@ -185,12 +189,15 @@ def parseForPercolation(particles, filename, nBonds, boxLength, timesteps):
     print("saved intermolecular bond information..")
     return percolatedBonds, bondedAtoms
 
-def frameByFramePerc(barrier, refoldBarrier, runNum, vf, numMol, boxLength):
+def frameByFramePerc(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom):
     """finds bonded particles and saves them and over what boundary they are bonded. formatted
         for one value per line, for easier parsing in c++."""
     bondCounter = 0
     frame = 0
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+    if bondsPerAtom == 2:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+    else:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}"
     filename = f"Run{runNum}_{conditions}"
     with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as bondsfile:
         nBonds = pickle.load(bondsfile)
@@ -261,11 +268,14 @@ def parseBondsForVis(filename, nBonds, timesteps):
     return bondedAtoms
 
 
-def checkBondLength(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, boxLength):
+def checkBondLength(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, boxLength, bondsPerAtom):
     """checks if a bond length is unrealistically long, if so then this means that wrapping is not working"""
     bondCounter = 0
     frame = 0
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
+    if bondsPerAtom == 2:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
+    else:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}"
     filename = f"threeBead_Run{runNum}_{conditions}"
 
     with open(f"../runs/{conditions}/{filename}/output/bondinfo.dat", "r") as f:
@@ -284,11 +294,14 @@ def checkBondLength(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, boxLengt
         
     return print("bond length check completed.")
 
-def coordination(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, bondInfo):
+def coordination(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, bondInfo, bondsPerAtom, suffix):
     """a function that finds the coordination of the atoms belonging to a three-bead molecule.
         First finds whether the bond is intramolecular and intermolecular and only counts the
         intermolecular bonds"""
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
+    if bondsPerAtom == 2:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}{suffix}"
+    else:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
     filename = f"Run{runNum}_{conditions}"
     with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
         timesteps = pickle.load(f)
@@ -326,34 +339,33 @@ def coordination(barrier, refoldBarrier, runNum, Vf, numMol, nBonds, bondInfo):
     print("counted intermolecular bonds per atom..")
     return moleculeCoordination
 
-def plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, Vf, boxLength):
+def plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, suffixes):
     """a function to find the average molecule coordination per run"""
     allCoordination = defaultdict(list)
     avCoordination = {}
     avCoordinationErr = {}
 
     fig, ax = plt.subplots()
-    for barrier in unfoldBarriers:
-        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
+    for barrier, suffix in zip(unfoldBarriers, suffixes):
+        if suffix != "":
+            continue
+        if bondsPerAtom == 2:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+        else:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
+            print(filename)
             with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "rb") as f:
                 percDims = pickle.load(f)
-            
-                if 3 not in percDims:
-                    print(f"skipping {filename}")
-                    continue
             with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
                 nBonds = pickle.load(f)
-            if len(nBonds) < 100: 
-                print(f"skipping run{runNum} barrier{barrier}")
-                continue
             with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "rb") as f:
                 bondInfo = pickle.load(f)            
-            molCoordination = coordination(barrier, refoldBarrier, runNum, Vf, numMol,
-                                        nBonds, bondInfo)
+            molCoordination = coordination(barrier, refoldBarrier, runNum, vf, numMol,
+                                        nBonds, bondInfo, bondsPerAtom, suffix)
             avCoordinationPerFrame = molCoordination.mean(axis = 1)
             allCoordination[barrier].append(avCoordinationPerFrame)
         coordinationArray = np.array(allCoordination[barrier])
@@ -366,16 +378,16 @@ def plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, Vf, boxLe
     ax.set_xlabel("simulation frame")
     ax.set_ylabel("molecule coordination")
     ax.legend()
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{Vf}/avCoordination_vf{Vf}.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/avCoordination_vf{vf}.png")
     ax.semilogx()
     ax.set_xlabel("simulation frame (semilog)")
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{Vf}/avCoordination_vf{Vf}_semilog.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/avCoordination_vf{vf}_semilog.png")
 
     plt.close()
     print("plotted average molecule coordination..")
     return avCoordination, avCoordinationErr
 
-def plotTogether(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength):
+def plotTogether(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom):
     with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avNewUnfoldedMol.pkl", "rb") as f:
         avNewUnfoldedMol, avNewUnfoldedMolErr = pickle.load(f)
     with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPercolation.pkl", "rb") as f:
@@ -388,7 +400,10 @@ def plotTogether(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength):
     fig, (ax1, ax2, ax3) = plt.subplots(3, sharex = True, figsize = (15, 15))
     fig.subplots_adjust(wspace = 0, hspace = 0)
     for barrier in unfoldBarriers:
-        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_numMol{numMol}"
+        if bondsPerAtom == 2:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+        else:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}"
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
         ax1.errorbar(timesteps, avUnfoldOverTime[barrier], yerr = avUnfoldOverTimeErr[barrier],
@@ -412,7 +427,7 @@ def plotTogether(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength):
     plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/sharedaxis_vf{vf}_semilog.png")
     plt.close()
 
-def plotTogetherShifted(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength):
+def plotTogetherShifted(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom):
     colors = ["maroon", "brown", "indianred", "lightcoral", "mistyrose"]
 
     with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avNewUnfoldedMol.pkl", "rb") as f:
@@ -426,7 +441,10 @@ def plotTogetherShifted(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxL
     fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, sharex = True, figsize = (15, 15))
     fig.subplots_adjust(wspace = 0, hspace = 0)
     for barrier in unfoldBarriers:
-        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+        if bondsPerAtom == 2:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+        else:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}"
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
             timesteps = np.array(timesteps)

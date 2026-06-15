@@ -151,8 +151,11 @@ def getPercDims(barrier, refoldBarrier, runNum, Vf, numMol):
     
     return percDims
 
-def plotPercolation(barrier, refoldBarrier, runNum, Vf, numMol, percDims):
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
+def plotPercolation(barrier, refoldBarrier, runNum, vf, numMol, percDims, bondsPerAtom, suffix):
+    if bondsPerAtom == 2:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+    else:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
     filename = f"Run{runNum}_{conditions}"
     with open(f"../runs/{conditions}/{filename}/timesteps.pkl", "rb") as f:
         timesteps = pickle.load(f)
@@ -165,14 +168,17 @@ def plotPercolation(barrier, refoldBarrier, runNum, Vf, numMol, percDims):
     plt.show()
     return
 
-def calcAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength):
+def calcAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffix):
     allPercolation = defaultdict(list)
     avPercolation = {}
     avPercolationErr = {}
 
     fig, ax = plt.subplots()
     for barrier in unfoldBarriers:
-        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+        if bondsPerAtom == 2:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+        else:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
 
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
@@ -185,15 +191,15 @@ def calcAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLen
                 percDims = pickle.load(f)
             with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
                 nBonds = pickle.load(f)
-            if len(nBonds) < 100: 
-                print(f"skipping run{runNum} barrier{barrier}")
-                continue
-    
+            percDims = percDims[:frames]
             if 3 in percDims:
                 while len(percDims) < frames:
                     percDims.append(3)
             allPercolation[barrier].append(percDims)
+            print(f"run {runNum}", len(allPercolation[barrier]))
 
+        print(f"barrier {barrier}")
+        print([len(p) for p in allPercolation[barrier]])
         percolationArray = np.array(allPercolation[barrier])
         avPercolation[barrier] = percolationArray.mean(axis = 0)
         avPercolationErr[barrier] = percolationArray.std(axis = 0)     
@@ -201,15 +207,20 @@ def calcAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLen
     return avPercolation, avPercolationErr
 
 
-def plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength):
+def plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes):
         
     with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPercolation.pkl", "rb") as f:
         avPercolation, avPercolationErr = pickle.load(f)
 
     
     fig, ax = plt.subplots()
-    for barrier in unfoldBarriers:  
-        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+    for barrier, suffix in zip(unfoldBarriers, suffixes):
+        if suffix != "":
+            continue  
+        if bondsPerAtom == 2:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+        else:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
 
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
@@ -219,9 +230,9 @@ def plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLen
     ax.set_xlabel("simulation frame")
     ax.set_ylabel("dimensions of percolation")
     ax.legend()
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/avPercolation_vf{vf}.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/avPercolation_vf{vf}.png")
     ax.semilogx()
     ax.set_xlabel("log simulation frame")
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/avPercolation_vf{vf}_semilog.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/avPercolation_vf{vf}_semilog.png")
     plt.show()
     return avPercolation, avPercolationErr

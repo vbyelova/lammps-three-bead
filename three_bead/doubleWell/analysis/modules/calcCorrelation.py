@@ -5,13 +5,16 @@ from collections import defaultdict
 
 from .calcAngles import *
 
-def densityUnfoldedCorrelation(barrier, refoldBarrier, runNum , vf, numMol, boxLength, suffix):
+def densityUnfoldedCorrelation(barrier, refoldBarrier, runNum , vf, numMol, boxLength, bondsPerAtom, suffix):
     """correlation function between local density and degree of unfolding """
     voxelSize = 0.07 * boxLength
     voxelUnfoldedCount = defaultdict(int)
     voxelParticleCount = defaultdict(int)
     moleculeAngles = defaultdict(list)
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+    if bondsPerAtom == 2:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+    else:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
     filename = f"Run{runNum}_{conditions}"
 
     with open(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl", "rb") as f:
@@ -26,7 +29,7 @@ def densityUnfoldedCorrelation(barrier, refoldBarrier, runNum , vf, numMol, boxL
     coords = np.column_stack([gx.ravel(), gy.ravel(), gz.ravel()])
 
     
-    angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, suffix)
+    angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, suffix)
     frame = max(angles.keys())
 
     # count how many particles per voxel (discrete)
@@ -54,20 +57,28 @@ def densityUnfoldedCorrelation(barrier, refoldBarrier, runNum , vf, numMol, boxL
 
     allCounts = []
     allMeanAngles = []
+    allCountsIncEmpty = []
+    allMeanAnglesIncEmpty = []
     voxelData = {}
 
-    for voxelID in voxelParticleCount.keys():
+    allVoxelIDs = [(x, y, z) for x in range(len(bins)) for y in range(len(bins)) for z in range(len(bins))]
+    for voxelID in allVoxelIDs:
         if voxelID in moleculeAngles and len(moleculeAngles[voxelID]) > 0:
             localMeanAngle = np.mean(moleculeAngles[voxelID])
 
             allCounts.append(voxelParticleCount[voxelID])
             allMeanAngles.append(localMeanAngle)
-
+            allCountsIncEmpty.append(voxelParticleCount[voxelID])
+            allMeanAnglesIncEmpty.append(localMeanAngle)
             voxelData[voxelID]= { "meanAngle": localMeanAngle,
                                  "totalPar": voxelParticleCount[voxelID],
                                  "foldedPar": voxelParticleCount[voxelID] - voxelUnfoldedCount[voxelID],
                                  "unfoldedPar": voxelUnfoldedCount[voxelID]}
-            
+        
+        else:
+            allCountsIncEmpty.append(0)
+            allMeanAnglesIncEmpty.append(0)
+
     meanCount = np.mean(allCounts)
     meanAngle = np.mean(allMeanAngles)
 
@@ -77,18 +88,18 @@ def densityUnfoldedCorrelation(barrier, refoldBarrier, runNum , vf, numMol, boxL
         corrFunc.append(corr)
 
     #print(allCounts, allMeanAngles)
-    plt.scatter(allCounts, allMeanAngles)
-    plt.ylabel("molecule angle")
-    plt.xlabel("particle density")
+    plt.scatter(allMeanAngles, allCounts)
+    plt.ylabel("count of particles in voxel")
+    plt.xlabel("mean molecule angle")
     meanCorr = np.mean(corrFunc)
     print(meanCorr)
     plt.savefig(f"../runs/{conditions}/{filename}/analysis/figs/densityUnfoldingCorr.png")
     plt.clf()
     #plt.show()
-    return allCounts, allMeanAngles, meanCorr
+    return allCounts, allMeanAngles, meanCorr, allCountsIncEmpty, allMeanAnglesIncEmpty
 
 
-def calcAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes):
+def calcAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes):
     """takes an average of all the correlation functions calculated"""
     allCorrFuncs = defaultdict(list)
     barrierAllCounts = defaultdict(list)
@@ -101,16 +112,20 @@ def calcAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol
     avCorrFuncsErr = {}
 
     for barrier, suffix in zip(unfoldBarriers, suffixes):
-        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+        if bondsPerAtom == 2:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+        else:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
 
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
             with open(f"../runs/{conditions}/{filename}/analysis/densityUnfoldedCorr.pkl", "rb") as f:
-                allCounts, allMeanAngles, meanCorr = pickle.load(f)
-            barrierAllCounts[barrier].append(allCounts)
-            barrierAllMeanAngles[barrier].append(allMeanAngles)
+                allCounts, allMeanAngles, meanCorr, allCountsIncEmpty, allMeanAnglesIncEmpty = pickle.load(f)
+                print(len(allCountsIncEmpty))
+            barrierAllCounts[barrier].append(allCountsIncEmpty)
+            barrierAllMeanAngles[barrier].append(allMeanAnglesIncEmpty)
             allCorrFuncs[barrier].append(meanCorr)
         
         avCorrFuncsArray = np.array(allCorrFuncs[barrier])
@@ -119,31 +134,32 @@ def calcAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol
     
         avAllCountsArray = np.array(barrierAllCounts[barrier])
         avAllCounts[barrier] = np.mean(avAllCountsArray, axis = 0)
-        avAllCounts[barrier] = np.std(avAllCountsArray, axis = 0)
+        avAllCountsErr[barrier] = np.std(avAllCountsArray, axis = 0)
 
         avAllMeanAnglesArray = np.array(barrierAllMeanAngles[barrier])
-        avAllMeanAngles[barrier] = np.mean(barrierAllMeanAngles, axis = 0)
-        avAllMeanAnglesErr[barrier] = np.std(barrierAllMeanAngles, axis = 0)
+        avAllMeanAngles[barrier] = np.mean(barrierAllMeanAngles[barrier], axis = 0)
+        avAllMeanAnglesErr[barrier] = np.std(barrierAllMeanAngles[barrier], axis = 0)
 
     return avAllCounts, avAllCountsErr, avAllMeanAngles, avAllMeanAnglesErr, avCorrFuncs, avCorrFuncsErr
 
-def plotAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes):
+def plotAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes):
     with open(f"../runs/boxLength{boxLength}/vf{vf}/data/densityUnfoldedCorr.pkl", "rb") as f:
         avAllCounts, avAllCountsErr, avAllMeanAngles, avAllMeanAnglesErr, avCorrFuncs, avCorrFuncsErr = pickle.load(f)
 
     fig, ax = plt.subplots(2, 3, sharex = True, sharey = True)
 
-    ax[0, 0].scatter(avAllCounts[unfoldBarriers[0]], avAllMeanAngles[unfoldBarriers[0]], label = f"unfolding barrier = {unfoldBarriers[0]}kT")
-    ax[1, 0].scatter(avAllCounts[unfoldBarriers[1]], avAllMeanAngles[unfoldBarriers[1]], label = f"unfolding barrier = {unfoldBarriers[1]}kT")
-    ax[0, 1].scatter(avAllCounts[unfoldBarriers[2]], avAllMeanAngles[unfoldBarriers[2]], label = f"unfolding barrier = {unfoldBarriers[2]}kT")
-    ax[0, 2].scatter(avAllCounts[unfoldBarriers[3]], avAllMeanAngles[unfoldBarriers[3]], label = f"unfolding barrier = {unfoldBarriers[3]}kT")
-    ax[1, 1].scatter(avAllCounts[unfoldBarriers[4]], avAllMeanAngles[unfoldBarriers[4]], label = f"unfolding barrier = {unfoldBarriers[4]}kT")
-#    ax6.scatter(avCorrFuncs[5][0], avCorrFuncs[5][1], label = f"unfolding barrier = {unfoldBarriers[5]}kT")
+    ax[0, 0].scatter(avAllMeanAngles[unfoldBarriers[0]], avAllCounts[unfoldBarriers[0]], label = f"unfolding barrier = {unfoldBarriers[0]}kT {suffixes[0]}")
+    ax[1, 0].scatter(avAllMeanAngles[unfoldBarriers[1]], avAllCounts[unfoldBarriers[1]], label = f"unfolding barrier = {unfoldBarriers[1]}kT")
+    ax[0, 1].scatter(avAllMeanAngles[unfoldBarriers[2]], avAllCounts[unfoldBarriers[2]], label = f"unfolding barrier = {unfoldBarriers[2]}kT")
+    ax[1, 1].scatter(avAllMeanAngles[unfoldBarriers[3]], avAllCounts[unfoldBarriers[3]], label = f"unfolding barrier = {unfoldBarriers[3]}kT")
+    ax[0, 2].scatter(avAllMeanAngles[unfoldBarriers[4]], avAllCounts[unfoldBarriers[4]], label = f"unfolding barrier = {unfoldBarriers[4]}kT")
+    ax[1, 2].scatter(avAllMeanAngles[unfoldBarriers[5]], avAllCounts[unfoldBarriers[5]], label = f"unfolding barrier = {unfoldBarriers[4]}kT")
 
-    ax.supylabel("unfolding degree")
-    ax.supxlabel("density of voxel")
+    plt.ylabel("unfolding degree")
+    plt.xlabel("number of particles in voxel")
+    plt.legend()
 
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/avDensityUnfoldedCorr.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/avDensityUnfoldedCorr.png")
     plt.show()
     plt.close()
     return

@@ -46,8 +46,11 @@ def plotForceMagnitude(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondI
     plt.tight_layout()
     plt.show()
 
-def calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInfo, boxLength):
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+def calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInfo, boxLength, bondsPerAtom, suffix):
+    if bondsPerAtom == 2:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+    else:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
     filename = f"Run{runNum}_{conditions}"
     with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
         stressTensor = np.zeros((3, 3))
@@ -72,9 +75,12 @@ def calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInf
             frame += 1
     return avStressTensors
 
-def calcPressure(barrier, refoldBarrier, runNum, vf, numMol, nBonds, avStressTensors):
+def calcPressure(barrier, refoldBarrier, runNum, vf, numMol, nBonds, avStressTensors, bondsPerAtom, suffix):
 
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+    if bondsPerAtom == 2:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+    else:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
     filename = f"Run{runNum}_{conditions}"
     with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
         timesteps = pickle.load(f)
@@ -89,13 +95,16 @@ def calcPressure(barrier, refoldBarrier, runNum, vf, numMol, nBonds, avStressTen
     plt.show()
     
 
-def calcAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength):
+def calcAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes):
     allPressure = defaultdict(list)
     avPressure = {}
     avPressureErr = {}
 
-    for barrier in unfoldBarriers:
-        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+    for barrier, suffix in zip(unfoldBarriers, suffixes):
+        if bondsPerAtom == 2:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+        else:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
         frames = [n for n in range(0, int(len(timesteps)))]
@@ -110,7 +119,7 @@ def calcAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength
             with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "rb") as f:
                 bondInfo = pickle.load(f)
             avStressTensors = calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol,
-                                               nBonds, bondInfo, boxLength)
+                                               nBonds, bondInfo, boxLength, bondsPerAtom, suffix)
             runPressure = [np.trace(tensor) / 3 for tensor in avStressTensors]
             allPressure[barrier].append(runPressure)
         
@@ -120,14 +129,17 @@ def calcAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength
 
     return avPressure, avPressureErr
 
-def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength):
+def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes):
     
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPressure.pkl", "rb") as f:
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avPressure.pkl", "rb") as f:
         avPressure, avPressureErr = pickle.load(f)
 
     fig, ax = plt.subplots()
-    for barrier in unfoldBarriers:
-        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+    for barrier, suffix in zip(unfoldBarriers, suffixes):
+        if bondsPerAtom == 2:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+        else:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
         ax.errorbar(timesteps, avPressure[barrier], yerr = avPressureErr[barrier],
@@ -136,11 +148,11 @@ def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength
     ax.set_xlabel("simulation frame")
     ax.set_ylabel("pressure")
     ax.legend()
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/pressure_vf{vf}.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/pressure_vf{vf}.png")
 
     ax.set_xlabel("simulation frame (semi log)")
     ax.semilogx()
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/pressure_vf{vf}_semilog.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/pressure_vf{vf}_semilog.png")
     plt.close()
     print("plotted average pressure..")
     return 

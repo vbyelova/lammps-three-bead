@@ -16,7 +16,7 @@ from modules.generateRDF import *
 # first input value is unfolding barrier height
 # second input value is minimum energy for unfolded state
 
-barrierToUnfold = [1, 2, 5]
+barrierToUnfold = [1, 2, 3, 4, 5]
 barrierToRefold = 2
 
 numRuns = 1
@@ -40,4 +40,4 @@ bondsPerAtom = 2
 #             quarticVals = calcDoubleWellCoeffs(barrier, barrierToRefold)
 #             angle0, k2, k3, k4 = quarticVals[0], quarticVals[1], quarticVals[2], quarticVals[3]
 
-threeExamples([4], 2)
+threeExamples([1, 2, 3, 4, 5], 2)

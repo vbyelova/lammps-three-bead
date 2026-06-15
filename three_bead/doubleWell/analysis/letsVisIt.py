@@ -15,15 +15,17 @@ from modules.parseRDF import *
 from modules.loadForVis import *
 
 # let's get the system data first
-unfoldBarriers = [3]
+unfoldBarriers = [1, 2, 3, 4, 5]
 refoldBarrier = 2
 numRuns = 1
 vf = 0.07
 numMol = 31512
 boxLength = 100
+suffixes = ["", "", "", "", ""]
+bondsPerAtom = 2
 
-for barrier in unfoldBarriers:
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+for barrier, suffix in zip(unfoldBarriers, suffixes):
+    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
     for runNum in range(numRuns):
         filename = f"Run{runNum}_{conditions}"
         systemData = parseSystemData(f"../runs/{conditions}/{filename}/output/systemData.txt")
@@ -60,9 +62,9 @@ for barrier in unfoldBarriers:
 
 
 
-        angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol)
-        unfoldedMols = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles)     
-        loadForceVis(barrier, refoldBarrier, runNum, vf, numMol, particles, unfoldedMols, angles)
+        angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, suffix)
+        unfoldedMols = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles, bondsPerAtom, suffix)     
+        loadForceVis(barrier, refoldBarrier, runNum, vf, numMol, particles, unfoldedMols, angles, bondsPerAtom, suffix)
 
 #parCoordination = particleCoordination(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInfo, timesteps)
 #loadCoordVis(barrier, refoldBarrier, runNum, vf, numMol, particles, timesteps, parCoordination)

@@ -132,7 +132,7 @@ def threeExamples(unfoldBarriers, barrierToRefold = 2):
     counter = 0
     f, ax = plt.subplots(1)
 
-    colors = cycle(["purple", "mediumorchid", "thistle"])
+    colors = cycle(["navy",  "darkslateblue", "rebeccapurple", "mediumpurple", "thistle"])
 
     for barrierToUnfold in unfoldBarriers:
         results = minimize(objective, initialGuess, args = (theta_min1, theta_min2, barrierToUnfold, barrierToRefold),

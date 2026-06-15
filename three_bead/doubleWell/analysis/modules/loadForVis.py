@@ -42,11 +42,15 @@ def coordToColour(coordNum, minCoord = 0, maxCoord = 2):
     b = 1- norm
     return r, g, b
 
-def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, particles, unfoldedMols, angles):
+def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, particles, unfoldedMols, angles, bondsPerAtom, suffix):
     pymol.finish_launching()
     # runNum = 10
     parRadius = 2 ** (1/6) * 0.4
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+    if bondsPerAtom == 2:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+    else:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+        
     filename = f"Run{runNum}_{conditions}"
     with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
         timesteps = pickle.load(f)
