@@ -16,15 +16,15 @@ from modules.generateRDF import *
 # first input value is unfolding barrier height
 # second input value is minimum energy for unfolded state
 
-barrierToUnfold = [4, 5]
+barrierToUnfold = [1, 5]
 barrierToRefold = 2
 
 numRuns = 10
-vf = [0.04]
+vf = [0.07]
 
-boxLength = 100
+boxLength = 55
 prob = 1 # probability of unfolding
-bondsPerAtom = 2 
+bondsPerAtom = 5
 
 #generate molecule input file
 
@@ -32,7 +32,7 @@ for volfrac in vf:
     for barrier in barrierToUnfold:
         numPar = (boxLength**3 * volfrac) / ((1 * 2 **(1 / 6))**3 * (np.pi / 6))
         numMol = int(numPar / 3) + 1
-        conditions = f"unfold{barrier}_refold{barrierToRefold}_Vf{volfrac}_mol{numMol}"
+        conditions = f"unfold{barrier}_refold{barrierToRefold}_Vf{volfrac}_mol{numMol}_bondsPerAtom{bondsPerAtom}"
 
         files = []
         for n in range (0, numRuns):

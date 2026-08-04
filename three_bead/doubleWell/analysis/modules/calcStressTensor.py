@@ -131,26 +131,53 @@ def calcAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength
 
 def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes):
     
+    colours = (["black", "dimgrey", "grey", "darkgrey", "silver"])
+    percAt = []
+    noperc = []
+    perc = []
     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avPressure.pkl", "rb") as f:
         avPressure, avPressureErr = pickle.load(f)
 
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avPercolation.pkl", "rb") as f:
+        avPercolation, avPercolationErr = pickle.load(f)
+
     fig, ax = plt.subplots()
-    for barrier, suffix in zip(unfoldBarriers, suffixes):
+
+    for i, (barrier, suffix) in enumerate(zip(unfoldBarriers, suffixes)):
+        if bondsPerAtom == 2:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+        else:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+            timesteps = pickle.load(f) 
+        key = (barrier, suffix)
+        if suffix != "":
+            percAt.append(None)
+            noperc.append((key))
+        if suffix == "":
+            perc.append(key)
+            percAt.append(np.where(avPercolation[barrier] == 3)[0][0])
+
+            ax.scatter(timesteps[percAt[i]], avPercolation[key][percAt[i]] / numMol * 100, color = "deeppink", marker = "x", zorder = 10)
+
+    for i, (barrier, suffix) in enumerate(zip(unfoldBarriers, suffixes)):
         if bondsPerAtom == 2:
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
         else:
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
-        ax.errorbar(timesteps, avPressure[barrier], yerr = avPressureErr[barrier],
+        ax.errorbar(timesteps, avPressure[noperc[i]], yerr = avPressureErr[noperc[i]], color = colours[i],
+                    label = f"barrier = {barrier}kT", linestyle = "dashdot")
+        ax.errorbar(timesteps, avPressure[perc[i]], yerr = avPressureErr[perc[i]], color = colours[i],
                     label = f"barrier = {barrier}kT")
 
-    ax.set_xlabel("simulation frame")
+    ax.set_xlabel("timesteps")
     ax.set_ylabel("pressure")
     ax.legend()
     plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/pressure_vf{vf}.png")
 
-    ax.set_xlabel("simulation frame (semi log)")
+    ax.set_xlabel("timesteps")
     ax.semilogx()
     plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/pressure_vf{vf}_semilog.png")
     plt.close()

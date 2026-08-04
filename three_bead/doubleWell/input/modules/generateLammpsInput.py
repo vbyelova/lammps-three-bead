@@ -45,7 +45,7 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
         f.write(f"boundary p p p\n")
         f.write(f"atom_style angle\n\n")
         f.write(f"read_data {filename}.in"
-                " extra/bond/per/atom 2 extra/special/per/atom 200\n")
+                f" extra/bond/per/atom {bondsPerAtom} extra/special/per/atom {bondsPerAtom}00\n")
         f.write(f"log input_log.lammps\n")
         f.write("min_style fire\n\n")
 

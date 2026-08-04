@@ -209,7 +209,7 @@ def calcAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLen
 
 def plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes):
         
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPercolation.pkl", "rb") as f:
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avPercolation.pkl", "rb") as f:
         avPercolation, avPercolationErr = pickle.load(f)
 
     

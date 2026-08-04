@@ -4,6 +4,7 @@ import re
 import os
 import subprocess
 from collections import defaultdict
+import multiprocessing as mp
 
 from modules.parseDump import *
 from modules.calcAngles import *
@@ -14,10 +15,11 @@ from modules.calcCorrelation import *
 from modules.threeBeadClasses import *
 from modules.parseRDF import *
 from modules.calcPorosity import *
+from modules.parallelPercolation import *
 
 # let's get the system data first
-unfoldBarriers = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
-suffixes = ["NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", ""]
+unfoldBarriers = [1, 2, 3, 4, 5]#[1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
+suffixes =["", "", "", "", ""]#["", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ"]
 refoldBarrier = 2
 numRuns = 10
 vf = 0.07
@@ -94,22 +96,22 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
             with open(f"../runs/{conditions}/{filename}/analysis/angleDist.pkl", "wb") as f:
                 pickle.dump((hist, bins, finalFrameAngles), f)
 
-#         if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDimsPerFrame.txt"):
-#             if suffix == "NOPERCOLATION":
-#                 continue
-#             else:
-#                 frameByFramePerc(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom)
-#                 systemDataFile = f"../runs/{conditions}/{filename}/output/systemData.txt"
-#                 percInfoFile = f"../runs/{conditions}/{filename}/analysis/percinfo.txt"
-#                 outputFile = f"../runs/{conditions}/{filename}/analysis/percDimsPerFrame.txt"
-#                 subprocess.run(["./addingData/addingData", systemDataFile, percInfoFile, outputFile])
-#         if suffix in ("NOPERCOLATIONNOLJ", "NOPERCOLATION"):
-#             continue
-#         else:
-#             percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol)
-#             if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDims.pkl"):
-#                 with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "wb") as f:
-#                     pickle.dump(percDims, f)
+        # if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDimsPerFrame.txt"):
+        #     if suffix == "NOPERCOLATION":
+        #         continue
+        #     else:
+        #         frameByFramePerc(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom)
+        #         systemDataFile = f"../runs/{conditions}/{filename}/output/systemData.txt"
+        #         percInfoFile = f"../runs/{conditions}/{filename}/analysis/percinfo.txt"
+        #         outputFile = f"../runs/{conditions}/{filename}/analysis/percDimsPerFrame.txt"
+        #         subprocess.run(["./addingData/addingData", systemDataFile, percInfoFile, outputFile])
+        # if suffix in ("NOPERCOLATIONNOLJ", "NOPERCOLATION"):
+        #     continue
+        # else:
+        #     percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol)
+        #     if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDims.pkl"):
+        #         with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "wb") as f:
+        #             pickle.dump(percDims, f)
         
         
 # if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/atPercFractalDims.pkl"):
@@ -132,24 +134,35 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
 #     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avPercolation.pkl", "wb") as f:
 #             pickle.dump((avPercolation, avPercolationErr), f)
 
-if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avRDF.pkl"):
-    avRDFs, avRDFsErr, shellBounds = calcPosRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avRDF.pkl", "wb") as f:
-        pickle.dump((avRDFs, avRDFsErr, shellBounds), f)
-    plotAvRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
+# perc_args = [
+#     (barrier, suffix, refoldBarrier, vf, numMol, boxLength, bondsPerAtom, runNum)
+#     for barrier, suffix in zip(unfoldBarriers, suffixes)
+#     for runNum in range(numRuns)
+#     if suffix not in ("NOPERCOLATIONNOLJ", "NOPERCOLATION")   # skip non-percolation runs early
+# ]
+
+# # Use all available cores, or cap it (e.g. mp.cpu_count() - 1)
+# with mp.Pool(processes=mp.cpu_count()) as pool:
+#     pool.map(process_single_run, perc_args)
+
+# if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avRDF.pkl"):
+#     avRDFs, avRDFsErr, shellBounds = calcPosRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
+#     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avRDF.pkl", "wb") as f:
+#         pickle.dump((avRDFs, avRDFsErr, shellBounds), f)
+#     plotAvRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
 
 if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avNewUnfoldedMol.pkl"):
     avNewUnfoldedMol, avNewUnfoldedMolErr = avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avNewUnfoldedMol.pkl", "wb") as f:
         pickle.dump((avNewUnfoldedMol, avNewUnfoldedMolErr), f)
 
-if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/unfoldedOverTime.pkl"):
-    avUnfoldOverTime, avUnfoldOverTimeErr = unfoldedOverTime(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/unfoldedOverTime.pkl", "wb") as f:
-        pickle.dump((avUnfoldOverTime, avUnfoldOverTimeErr), f)
+# if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/unfoldedOverTime.pkl"):
+#     avUnfoldOverTime, avUnfoldOverTimeErr = unfoldedOverTime(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
+#     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/unfoldedOverTime.pkl", "wb") as f:
+#         pickle.dump((avUnfoldOverTime, avUnfoldOverTimeErr), f)
 
 # if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/data/avPressure.pkl"):
-#     avPressure, avPressureErr = calcAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength)
+#     avPressure, avPressureErr = calcAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
 #     with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPressure.pkl", "wb") as f:
 #         pickle.dump((avPressure, avPressureErr), f)
 
@@ -158,18 +171,24 @@ if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPe
     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avCoordination.pkl", "wb") as f:
         pickle.dump((avCoordination, avCoordinationErr), f)
 
-#plotAvBimodalAngle(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes)
 
+
+#plotAvBimodalAngle(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
+#collapseUnfoldedOverTime(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
 # avAllCounts, avAllCountsErr, avAllMeanAngles, avAllMeanAnglesErr, avCorrFuncs, avCorrFuncsErr = calcAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier,
 #                                                                                                                            numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
-# with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}data/densityUnfoldedCorr.pkl", "wb") as f:
+# with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/densityUnfoldedCorr.pkl", "wb") as f:
 #    pickle.dump((avAllCounts, avAllCountsErr, avAllMeanAngles, avAllMeanAnglesErr, avCorrFuncs, avCorrFuncsErr), f)
-# plotAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
-#plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength)
+#plotAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
+#plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom)
 #plotTogetherShifted(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength)
 #plotTogether(unfoldBarriers, refoldBarrier, numRuns, numMol ,vf, boxLength)
-anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
-plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength)
-plotUnfoldedOverTime(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes)
+#anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
+#plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, suffixes)
+#plotBimodalAndDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
+#plotUnfoldedOverTime(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
 #plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes)
+#plotTotalInterMol(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom)
+#plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
+plotFolded(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes)
 print("done :D")

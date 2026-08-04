@@ -1,7 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 import pickle
 from collections import defaultdict
+import pandas as pd
 
 from .calcAngles import *
 
@@ -143,22 +145,32 @@ def calcAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol
     return avAllCounts, avAllCountsErr, avAllMeanAngles, avAllMeanAnglesErr, avCorrFuncs, avCorrFuncsErr
 
 def plotAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes):
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/densityUnfoldedCorr.pkl", "rb") as f:
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/densityUnfoldedCorr.pkl", "rb") as f:
         avAllCounts, avAllCountsErr, avAllMeanAngles, avAllMeanAnglesErr, avCorrFuncs, avCorrFuncsErr = pickle.load(f)
 
+    axes = [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2)]
     fig, ax = plt.subplots(2, 3, sharex = True, sharey = True)
-
-    ax[0, 0].scatter(avAllMeanAngles[unfoldBarriers[0]], avAllCounts[unfoldBarriers[0]], label = f"unfolding barrier = {unfoldBarriers[0]}kT {suffixes[0]}")
-    ax[1, 0].scatter(avAllMeanAngles[unfoldBarriers[1]], avAllCounts[unfoldBarriers[1]], label = f"unfolding barrier = {unfoldBarriers[1]}kT")
-    ax[0, 1].scatter(avAllMeanAngles[unfoldBarriers[2]], avAllCounts[unfoldBarriers[2]], label = f"unfolding barrier = {unfoldBarriers[2]}kT")
-    ax[1, 1].scatter(avAllMeanAngles[unfoldBarriers[3]], avAllCounts[unfoldBarriers[3]], label = f"unfolding barrier = {unfoldBarriers[3]}kT")
-    ax[0, 2].scatter(avAllMeanAngles[unfoldBarriers[4]], avAllCounts[unfoldBarriers[4]], label = f"unfolding barrier = {unfoldBarriers[4]}kT")
-    ax[1, 2].scatter(avAllMeanAngles[unfoldBarriers[5]], avAllCounts[unfoldBarriers[5]], label = f"unfolding barrier = {unfoldBarriers[4]}kT")
-
-    plt.ylabel("unfolding degree")
-    plt.xlabel("number of particles in voxel")
-    plt.legend()
-
+    for barrier in unfoldBarriers:
+        if bondsPerAtom == 2:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+        else:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}"
+        key = axes[barrier - 1]
+        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+            timesteps = pickle.load(f)
+        for runNum in range(numRuns):
+            filename = f"Run{runNum}_{conditions}"
+            with open(f"../runs/{conditions}/{filename}/analysis/densityUnfoldedCorr.pkl", "rb") as f:
+                allCounts, allMeanAngles, meanCorr, allCountsIncEmpty, allMeanAnglesIncEmpty = pickle.load(f)
+            filtered = [(v, n) for v, n in zip(allCountsIncEmpty, allMeanAnglesIncEmpty)
+                        if not (v == 0 and n == 0)]
+            filteredCounts, filteredAngles = zip(*filtered)
+        ax[key].hist2d(filteredAngles, filteredCounts, bins = 50, norm = mcolors.PowerNorm(0.5), cmap = plt.cm.summer)
+        ax[key].set_title(f"E_U = {barrier}kT")
+    fig.supxlabel(f"molecule angle (\u03B8)")
+    fig.supylabel("number of particles in voxel")
+    
+    plt.tight_layout()
     plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/avDensityUnfoldedCorr.png")
     plt.show()
     plt.close()

@@ -196,37 +196,34 @@ def plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, bo
     barWidth = 0.35
     x = np.arange(len(unfoldBarriers) - 1)
     fig, ax = plt.subplots()
-    ax.bar(x - barWidth / 2, atPercFinalFractalDims,
-            yerr = atPercFinalFractalDimsError,
-            width = barWidth, label = "at percolation", color = "chocolate")
-    ax.bar(x + barWidth / 2, simEndFinalFractalDims,
-            yerr = simEndFinalFractalDimsError,
-            width = barWidth, label = "at end of sim", color = "saddlebrown")
-    ax.set_xticks(x)
+    unfoldBarriers = sorted(set(unfoldBarriers))
+    ax.errorbar(unfoldBarriers, atPercFinalFractalDims,
+            yerr = atPercFinalFractalDimsError, label = "at gelation", marker = "x", color = "lightskyblue")
+    ax.errorbar(unfoldBarriers, simEndFinalFractalDims,
+            yerr = simEndFinalFractalDimsError, label = "at end of simulation", marker = "x", color = "steelblue")
+    #ax.set_xticks(x)
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
-          fancybox=True, shadow=True, ncol=2)
-    ax.set_xticklabels(unfoldBarriers[1:])
-    ax.set_xlabel("Unfolding barrier (kT)")
-    ax.set_ylabel("Fractal dimension")
+          fancybox=True, shadow=True, ncol=2, fontsize = 12)
+    #ax.set_xticklabels(unfoldBarriers)
+    ax.set_xlabel(f"$E_U$ (kT)", fontsize = 15)
+    ax.set_ylabel(f"Fractal dimension $D_f$", fontsize = 15)
     plt.tight_layout()
     #ax.set_title("Fractal dimension through box counting method")
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}fractalDim_vf{vf}.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/fractalDim_vf{vf}.png")
     plt.close()
 
     fig, ax = plt.subplots()
-    ax.bar(x - barWidth / 2, [atPercAvCorrLength[b] for b in unfoldBarriers[1:]],
-            yerr = [atPercAvCorrLengthErr[b] for b in unfoldBarriers[1:]],
-            width = barWidth, color = "goldenrod", label = "at percolation")
-    ax.bar(x + barWidth / 2, [simEndAvCorrLength[b] for b in unfoldBarriers[1:]],
-            yerr = [simEndAvCorrLengthErr[b] for b in unfoldBarriers[1:]],
-            width = barWidth, color = "darkgoldenrod", label = "at end of sim")
+    ax.errorbar(unfoldBarriers, [atPercAvCorrLength[b] for b in unfoldBarriers],
+            yerr = [atPercAvCorrLengthErr[b] for b in unfoldBarriers], color = "mediumseagreen", marker = "x", label = "at gelation")
+    ax.errorbar(unfoldBarriers, [simEndAvCorrLength[b] for b in unfoldBarriers],
+            yerr = [simEndAvCorrLengthErr[b] for b in unfoldBarriers], color = "darkgreen", marker = "x", label = "at end of simulation")
     
-    ax.set_xticks(x)
-    ax.set_xticklabels(unfoldBarriers[1:])
+    #ax.set_xticks(x)
+    #ax.set_xticklabels(unfoldBarriers)
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
-          fancybox=True, shadow=True, ncol=2)
-    ax.set_xlabel("Unfolding barrier (kT)")
-    ax.set_ylabel(r"correlation length $\xi$")
+          fancybox=True, shadow=True, ncol=2, fontsize = 12)
+    ax.set_xlabel("$E_U$ (kT)", fontsize = 15)
+    ax.set_ylabel(r"correlation length $\xi$", fontsize = 15)
     plt.tight_layout()
     #ax.set_title("Cluster sizes at different simulation points")
     plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/corrLength_vf{vf}.png")

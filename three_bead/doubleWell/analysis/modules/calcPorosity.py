@@ -40,75 +40,83 @@ def calcPorosity(barrier, refoldBarrier, runNum, vf, numMol, boxLength):
     boxMax = np.max(sphereCentres, axis = 0) + parRadius
     
     # generate voxel grid
-    gridX = np.arange(boxMin[0], boxMax[0], voxelSize)
-    gridY = np.arange(boxMin[1], boxMax[1], voxelSize)
-    gridZ = np.arange(boxMin[2], boxMax[2], voxelSize)
+    gridX = np.arange(boxMin[0], boxMax[0], voxelSize) + voxelSize / 2
+    gridY = np.arange(boxMin[1], boxMax[1], voxelSize) + voxelSize / 2
+    gridZ = np.arange(boxMin[2], boxMax[2], voxelSize) + voxelSize / 2
     
     gx, gy, gz = np.meshgrid(gridX, gridY, gridZ, indexing = 'ij')
     coords = np.column_stack([gx.ravel(), gy.ravel(), gz.ravel()])
 
-
-    allVoxels = [Voxel(pos = c) for c in coords]
-    
-    print("generated all voxels..")
-
-    voxelCoords = np.array([v.pos for v in allVoxels])
-
+    print("generated coords..")
     # find distance between pore centre and particles
     tree = KDTree(sphereCentres)
-    filledVoxels = tree.query_ball_point(voxelCoords, r = parRadius, return_sorted = False)
-    filledMask = np.array([len(id) > 0 for id in filledVoxels])
+    filledMask = tree.query_ball_point(coords, r = parRadius, return_length = True) > 0
 
     print("generated mask..")
+ 
+    voidCoords = coords[~filledMask]
+    dists, _ = tree.query(voidCoords, k = 1)
+    poreSizes = dists - parRadius
 
-    for num, v in enumerate(allVoxels):
-        if filledMask[num]:
-            v.filled = True
-        else:
-            v.void = True
-            dist, n = tree.query(v.pos, k = 1)
-            v.poreSize = dist - parRadius
+    voidTree = KDTree(voidCoords)
+    maxPore = poreSizes.max()
 
-    voidVoxels = [v for v in allVoxels if v.void]
+    isChild = np.zeros(len(voidCoords), dtype = bool)
 
-    print("found void voxels..")
 
     # filter through parent and child voxels
-    for num1, i in enumerate(voidVoxels):
-        for num2, j in enumerate(voidVoxels):
-            if i == j:
-                pass
-            # is i a potential parent?
-            elif i.poreSize > j.poreSize:
-                dist = (i.pos[0] - j.pos[0])**2 + (i.pos[1] - j.pos[1])**2 +(i.pos[2] - j.pos[2])**2
-                
-                # does i fully encompass j?
-                if dist + j.poreSize**2 <= i.poreSize**2:
-                    i.parent = True
-                    j.child = True
+    group = 2000
+    for start in range(0, len(voidCoords), group):
+        end = min(start + group, len(voidCoords))
+        
+        groupCoords = voidCoords[start:end]
+        groupSizes = poreSizes[start:end]
+
+        neighbours = voidTree.query_ball_point(groupCoords, r = maxPore)
+
+        for i, (j, jSize, jNeigh) in enumerate(zip(range(start, end), groupSizes, neighbours)):
+            if len(jNeigh) == 0:
+                continue
+            jNeighArray = np.array(jNeigh)
+            iSize = poreSizes[jNeighArray]
+            candidate = jNeighArray[iSize > jSize]
+            diffs = voidCoords[candidate] - voidCoords[j]
+            dist2 = np.einsum("ij, ij->i", diffs, diffs)
+            contained = dist2 + jSize**2 <= poreSizes[candidate]**2
+            if contained.any():
+                isChild[j] = True
+    
+    print("filtered parents and children..")
 
     # decide which pores are main pores and which are throats
 
-    parents = [v for v in voidVoxels if not v.child]
-    children = [v for v in voidVoxels if v.child]
-
+    parentMask = ~isChild
+    parentCoords = voidCoords[parentMask]
+    parentSize = poreSizes[parentMask]
     print("found parent and child voxels..")
 
-    for num1, i in enumerate(parents):
-        for num2, j in enumerate(parents):
-            if i == j:
-                pass
-            dist = (i.pos[0] - j.pos[0])**2 + (i.pos[1] - j.pos[1])**2 +(i.pos[2] - j.pos[2])**2
+    maxParent = parentSize.max()
+    parentTree = KDTree(parentCoords)
 
-            if dist < i.poreSize**2 + j.poreSize**2:
-                i.throat = True
-                j.throat = True
+    isThroat = np.zeros(len(parentCoords), dtype = bool)
+    for i in range(len(parentCoords)):
+        neighbours = parentTree.query_ball_point(parentCoords[i], r = (np.sqrt(parentSize[i]**2 + maxParent**2)))
+        nb = np.array([n for n in neighbours if n != i])
+        diffs = parentCoords[nb] - parentCoords[i]
+        dist2 = np.einsum("ij, ij->i", diffs, diffs)
+        overlaps = dist2 < parentSize[i]**2 + parentSize[nb]**2
+        if overlaps.any():
+            isThroat[i] = True
+            isThroat[nb[overlaps]] = True
+    
+    mainMask = ~isThroat
 
-    mainPores = [v for v in parents if not v.throat]
-    throatPores = [v for v in parents if v.throat]
+    mainPoreCoords = parentCoords[mainMask]
+    mainPoreSize = parentSize[mainMask]
 
-    print("found main pores and throat pores..")
-
+    mainPores = [{"pos" : mainPoreCoords[k], "size": mainPoreSize[k]} for k in range(len(mainPoreCoords))]
+    print("found pores and throats..")
+    print(mainPores)
     return mainPores
 
 def plotAvPorosity(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength):

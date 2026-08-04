@@ -428,7 +428,7 @@ def plotTogether(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, 
     plt.close()
 
 def plotTogetherShifted(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom):
-    colors = ["maroon", "brown", "indianred", "lightcoral", "mistyrose"]
+    colors = ["maroon", "firebrick", "indianred", "lightcoral", "lightpink"]
 
     with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avNewUnfoldedMol.pkl", "rb") as f:
         avNewUnfoldedMol, avNewUnfoldedMolErr = pickle.load(f)
@@ -483,3 +483,49 @@ def plotTogetherShifted(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxL
     
     plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/shifted_sharedaxis_vf{vf}_semilog.png")
     plt.close()
+
+def plotTotalInterMol(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom):
+    """plots scatter graph of average intermolecular bond count over simulation for each
+        energy barrier."""
+    
+    allBonds = defaultdict(list)
+    avNBonds = {}
+    avNBondsErr = {}
+    percAt = []
+
+    fig, ax = plt.subplots()
+
+    colours = cycle(["maroon", "firebrick", "indianred", "lightcoral", "lightpink"])
+
+    for i, barrier in enumerate(unfoldBarriers):
+        if bondsPerAtom == 2:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+        else:
+          conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}"
+        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+            timesteps = pickle.load(f)
+        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avPercolation.pkl", "rb") as f:
+            avPercolation, avPercolationErr = pickle.load(f)
+        for runNum in range(numRuns):
+            filename = f"Run{runNum}_{conditions}"
+            with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
+                nBonds = pickle.load(f)
+            
+            allBonds[barrier].append(nBonds)
+        
+        allBondsArray = np.array(allBonds[barrier])
+        avNBonds[barrier] = allBondsArray.mean(axis = 0)
+        avNBondsErr[barrier] = allBondsArray.std(axis = 0)
+        ax.errorbar(timesteps, avNBonds[barrier], yerr = avNBondsErr[barrier],
+                    color = next(colours), label = f"E_U = {barrier}kT")
+        percAt.append(np.where(avPercolation[barrier] == 3)[0][0])
+        print(avNBonds[barrier][percAt[i]])
+    
+        ax.scatter(timesteps[percAt[i]], avNBonds[barrier][percAt[i]],
+                   marker = "*", color = "black")
+    plt.legend()
+    plt.semilogx()
+    plt.xlabel("timesteps")
+    plt.ylabel("number of intermol. bonds")
+    plt.show()
+    return

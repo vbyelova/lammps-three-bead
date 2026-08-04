@@ -132,8 +132,9 @@ def threeExamples(unfoldBarriers, barrierToRefold = 2):
     counter = 0
     f, ax = plt.subplots(1)
 
-    colors = cycle(["navy",  "darkslateblue", "rebeccapurple", "mediumpurple", "thistle"])
-
+    # colors = cycle(["navy",  "darkslateblue", "rebeccapurple", "mediumpurple", "thistle"])
+    #colours = cycle(["maroon", "firebrick", "indianred", "lightcoral", "lightpink"])
+    colours = cycle(["black", "dimgrey", "grey", "darkgrey", "silver"])
     for barrierToUnfold in unfoldBarriers:
         results = minimize(objective, initialGuess, args = (theta_min1, theta_min2, barrierToUnfold, barrierToRefold),
                             method = "Nelder-Mead", options={'maxiter':1000})
@@ -154,14 +155,16 @@ def threeExamples(unfoldBarriers, barrierToRefold = 2):
 
         thetaDegrees = np.degrees(thetas)
 
-        ax.plot(thetaDegrees, energy, label = f"unfolding barrier = {barrierToUnfold}kT", color = next(colors))
+        ax.plot(thetaDegrees, energy, label = f"unfolding barrier = {barrierToUnfold}kT", color = next(colours))
     
+    #plt.axvline(60, linestyle = "--", color = "mediumblue")
+    #plt.axvline(180, linestyle = "--", color = "red")
     #ax.xaxis.set_major_formatter(FormatStrFormatter('%g $\pi$'))
     #ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base=0.5))
-    plt.xlabel("molecule angle \u03B8")
+    plt.xlabel("molecule angle (\u03B8)")
     plt.ylabel("Potential energy (kT)")
     #plt.legend()
-    plt.title("Single-step protein unfolding energy profile")
+    #plt.title("Single-step protein unfolding energy profile")
     plt.show()
 
 def writeAngleFile(theta0, k2, k3, k4, conditions):

@@ -4,6 +4,8 @@ import pickle
 import subprocess
 from pymol import cgo, cmd
 
+from .calcPorosity import *
+
 def saveMovie(vf, numMol, runNum, timesteps):
     cmd.set("ray_trace_frames", 0)
     cmd.set("movie_fps", 10)
@@ -42,7 +44,7 @@ def coordToColour(coordNum, minCoord = 0, maxCoord = 2):
     b = 1- norm
     return r, g, b
 
-def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, particles, unfoldedMols, angles, bondsPerAtom, suffix):
+def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particles, unfoldedMols, angles, bondsPerAtom, suffix):
     pymol.finish_launching()
     # runNum = 10
     parRadius = 2 ** (1/6) * 0.4
@@ -54,6 +56,7 @@ def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, particles, unfolded
     filename = f"Run{runNum}_{conditions}"
     with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
         timesteps = pickle.load(f)
+    #pores = calcPorosity(barrier, refoldBarrier, runNum, vf, numMol, boxLength)
     frames = len(timesteps)
     minAngle = min(min(angles.values()))
     maxAngle = max(max(angles.values()))
@@ -72,10 +75,16 @@ def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, particles, unfolded
         
             r, g, b = angleToColour(angle, minAngle, maxAngle)
             
+            #if 30 < z < 40:
             frame_cgo.extend([cgo.COLOR, r, g, b, cgo.SPHERE, x, y, z, parRadius])
+        # for pore in pores:
+        #     x, y, z = pore["pos"]
+        #     poreRadius = pore["size"]
 
+        #     r, g, b = 0, 0.5, 0
+        #     frame_cgo.extend([cgo.COLOR, r, g, b, cgo.SPHERE, x, y, z, poreRadius])
         cmd.load_cgo(frame_cgo, f"angle_unfold{barrier}_Run{runNum}_Vf{vf}_mol{numMol}", state = frame + 1)
-        
+
     cmd.zoom("all", buffer = 5)
     cmd.bg_color("white")
     cmd.set("ray_opaque_background", 1)
