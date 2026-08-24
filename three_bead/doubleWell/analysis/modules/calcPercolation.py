@@ -138,9 +138,14 @@ def testFrameByFrame():
         dimsPercolated.append(system.percolationDimension(V, E))
     return print(dimsPercolated)
 
-def getPercDims(barrier, refoldBarrier, runNum, Vf, numMol):
+def getPercDims(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix):
     
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
+    if bondsPerAtom == 2:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+    else:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+        if prob < 1:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
     filename = f"Run{runNum}_{conditions}"
     percDims = []
     with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
@@ -151,11 +156,13 @@ def getPercDims(barrier, refoldBarrier, runNum, Vf, numMol):
     
     return percDims
 
-def plotPercolation(barrier, refoldBarrier, runNum, vf, numMol, percDims, bondsPerAtom, suffix):
+def plotPercolation(barrier, refoldBarrier, runNum, vf, numMol, percDims, bondsPerAtom, prob, suffix):
     if bondsPerAtom == 2:
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
     else:
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+        if prob < 1:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
     filename = f"Run{runNum}_{conditions}"
     with open(f"../runs/{conditions}/{filename}/timesteps.pkl", "rb") as f:
         timesteps = pickle.load(f)
@@ -168,7 +175,7 @@ def plotPercolation(barrier, refoldBarrier, runNum, vf, numMol, percDims, bondsP
     plt.show()
     return
 
-def calcAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffix):
+def calcAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffix):
     allPercolation = defaultdict(list)
     avPercolation = {}
     avPercolationErr = {}
@@ -179,6 +186,8 @@ def calcAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLen
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
         else:
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+            if prob < 1:
+                conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
 
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
@@ -207,7 +216,7 @@ def calcAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLen
     return avPercolation, avPercolationErr
 
 
-def plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes):
+def plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
         
     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avPercolation.pkl", "rb") as f:
         avPercolation, avPercolationErr = pickle.load(f)
@@ -221,6 +230,8 @@ def plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLen
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
         else:
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+            if prob < 1:
+                conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
 
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)

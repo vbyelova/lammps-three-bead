@@ -44,7 +44,7 @@ def coordToColour(coordNum, minCoord = 0, maxCoord = 2):
     b = 1- norm
     return r, g, b
 
-def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particles, unfoldedMols, angles, bondsPerAtom, suffix):
+def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particles, unfoldedMols, angles, bondsPerAtom, prob, suffix):
     pymol.finish_launching()
     # runNum = 10
     parRadius = 2 ** (1/6) * 0.4
@@ -52,6 +52,8 @@ def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particle
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
     else:
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+        if prob < 1:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
         
     filename = f"Run{runNum}_{conditions}"
     with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
@@ -75,7 +77,7 @@ def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particle
         
             r, g, b = angleToColour(angle, minAngle, maxAngle)
             
-            #if 30 < z < 40:
+            #if 20 < z < 30:
             frame_cgo.extend([cgo.COLOR, r, g, b, cgo.SPHERE, x, y, z, parRadius])
         # for pore in pores:
         #     x, y, z = pore["pos"]

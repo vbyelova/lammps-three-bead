@@ -7,7 +7,7 @@ import pandas as pd
 
 from .calcAngles import *
 
-def densityUnfoldedCorrelation(barrier, refoldBarrier, runNum , vf, numMol, boxLength, bondsPerAtom, suffix):
+def densityUnfoldedCorrelation(barrier, refoldBarrier, runNum , vf, numMol, boxLength, bondsPerAtom, prob, suffix):
     """correlation function between local density and degree of unfolding """
     voxelSize = 0.07 * boxLength
     voxelUnfoldedCount = defaultdict(int)
@@ -17,8 +17,9 @@ def densityUnfoldedCorrelation(barrier, refoldBarrier, runNum , vf, numMol, boxL
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
     else:
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+        if prob < 1:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
     filename = f"Run{runNum}_{conditions}"
-
     with open(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl", "rb") as f:
         particles = pickle.load(f)
     with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
@@ -31,7 +32,7 @@ def densityUnfoldedCorrelation(barrier, refoldBarrier, runNum , vf, numMol, boxL
     coords = np.column_stack([gx.ravel(), gy.ravel(), gz.ravel()])
 
     
-    angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, suffix)
+    angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix)
     frame = max(angles.keys())
 
     # count how many particles per voxel (discrete)
@@ -101,7 +102,7 @@ def densityUnfoldedCorrelation(barrier, refoldBarrier, runNum , vf, numMol, boxL
     return allCounts, allMeanAngles, meanCorr, allCountsIncEmpty, allMeanAnglesIncEmpty
 
 
-def calcAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes):
+def calcAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
     """takes an average of all the correlation functions calculated"""
     allCorrFuncs = defaultdict(list)
     barrierAllCounts = defaultdict(list)
@@ -118,6 +119,8 @@ def calcAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
         else:
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+            if prob < 1:
+                conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
 
@@ -144,8 +147,8 @@ def calcAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol
 
     return avAllCounts, avAllCountsErr, avAllMeanAngles, avAllMeanAnglesErr, avCorrFuncs, avCorrFuncsErr
 
-def plotAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, suffixes):
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/densityUnfoldedCorr.pkl", "rb") as f:
+def plotAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/densityUnfoldedCorr.pkl", "rb") as f:
         avAllCounts, avAllCountsErr, avAllMeanAngles, avAllMeanAnglesErr, avCorrFuncs, avCorrFuncsErr = pickle.load(f)
 
     axes = [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2)]
@@ -155,6 +158,8 @@ def plotAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
         else:
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}"
+            if prob < 1:
+                conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}"
         key = axes[barrier - 1]
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
@@ -171,7 +176,7 @@ def plotAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol
     fig.supylabel("number of particles in voxel")
     
     plt.tight_layout()
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/avDensityUnfoldedCorr.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/avDensityUnfoldedCorr.png")
     plt.show()
     plt.close()
     return

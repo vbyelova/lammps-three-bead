@@ -15,17 +15,18 @@ from modules.parseRDF import *
 from modules.loadForVis import *
 
 # let's get the system data first
-unfoldBarriers = [1, 5]
+unfoldBarriers = [1, 2, 3, 4, 5]
 refoldBarrier = 2
 numRuns = 1
 vf = 0.07
-numMol = 5243
-boxLength = 55
-suffixes = ["", ""]
-bondsPerAtom = 5
+numMol = 31512
+boxLength = 100
+suffixes = ["", "", "", "", ""]
+bondsPerAtom = 2
+prob = 1
 
 for barrier, suffix in zip(unfoldBarriers, suffixes):
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}"
+    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
     for runNum in range(numRuns):
         filename = f"Run{runNum}_{conditions}"
         systemData = parseSystemData(f"../runs/{conditions}/{filename}/output/systemData.txt")
@@ -47,7 +48,7 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
 
         # check if particle trajectories have been parsed
         if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl"):
-            data = readData(f"../runs/{conditions}/{filename}/output/vis.lammpstrj", Nsteps, Nwrite, Npar, equilTime)
+            data = readData(f"../runs/{conditions}/{filename}/output/dump.lammpstrj", Nsteps, Nwrite, Npar, equilTime)
             particles, timesteps = data[0], data[1]
             with open(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl", "wb") as f:
                 pickle.dump(particles, f)
@@ -62,9 +63,9 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
 
 
 
-        angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, suffix)
-        unfoldedMols = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles, bondsPerAtom, suffix)     
-        loadForceVis(barrier, refoldBarrier, runNum, vf, numMol,boxLength, particles, unfoldedMols, angles, bondsPerAtom, suffix)
+        angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix)
+        unfoldedMols = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles, bondsPerAtom, prob, suffix)     
+        loadForceVis(barrier, refoldBarrier, runNum, vf, numMol,boxLength, particles, unfoldedMols, angles, bondsPerAtom, prob, suffix)
 
 #parCoordination = particleCoordination(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInfo, timesteps)
 #loadCoordVis(barrier, refoldBarrier, runNum, vf, numMol, particles, timesteps, parCoordination)
