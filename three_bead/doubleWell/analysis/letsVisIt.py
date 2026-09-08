@@ -26,7 +26,7 @@ bondsPerAtom = 2
 prob = 1
 
 for barrier, suffix in zip(unfoldBarriers, suffixes):
-    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
+    conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
     for runNum in range(numRuns):
         filename = f"Run{runNum}_{conditions}"
         systemData = parseSystemData(f"../runs/{conditions}/{filename}/output/systemData.txt")
@@ -59,6 +59,7 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
                 particles = pickle.load(f)
             with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
                 timesteps = pickle.load(f)
+                print(timesteps)
 
 
 

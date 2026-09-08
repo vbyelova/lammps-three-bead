@@ -185,11 +185,11 @@ def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength
     ax.set_xlabel("timesteps")
     ax.set_ylabel("pressure")
     ax.legend()
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/pressure_vf{vf}.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/pressure_vf{vf}.jpg")
 
     ax.set_xlabel("timesteps")
     ax.semilogx()
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/pressure_vf{vf}_semilog.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/pressure_vf{vf}_semilog.jpg")
     plt.close()
     print("plotted average pressure..")
     return 

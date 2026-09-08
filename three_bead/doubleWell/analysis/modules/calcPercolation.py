@@ -241,9 +241,9 @@ def plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLen
     ax.set_xlabel("simulation frame")
     ax.set_ylabel("dimensions of percolation")
     ax.legend()
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/avPercolation_vf{vf}.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/avPercolation_vf{vf}.jpg")
     ax.semilogx()
     ax.set_xlabel("log simulation frame")
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/avPercolation_vf{vf}_semilog.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/avPercolation_vf{vf}_semilog.jpg")
     plt.show()
     return avPercolation, avPercolationErr

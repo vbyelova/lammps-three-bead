@@ -144,13 +144,13 @@ def plotUnfoldedOverTime(unfoldBarrier, refoldBarrier, numRuns, vf, numMol, boxL
     ax.set_xlabel("simulation frame")
     ax.set_ylabel(f"number of unfolded molecules (%)")
     ax.legend()
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/unfoldedMol_vf{vf}.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/unfoldedMol_vf{vf}.jpg")
     ax.semilogx()
     ax.set_xlabel("timesteps", fontsize = 12)
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/unfoldedMol_vf{vf}_semilog.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/unfoldedMol_vf{vf}_semilog.jpg")
     ax.semilogy()
     ax.set_ylabel("number of unfolded molecules", fontsize = 12)
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/unfoldedMol_vf{vf}_log.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/unfoldedMol_vf{vf}_log.jpg")
 
     plt.close()
 
@@ -285,7 +285,7 @@ def plotAvBimodalAngle(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
   
     plt.tight_layout()
 
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/avBimodalAngle.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/avBimodalAngle.jpg")
     return
 
 def plotBimodalAndDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
@@ -318,7 +318,7 @@ def plotBimodalAndDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf
         allHistogramsArray = np.array(allHistograms[barrier])
         histogramsMean[key] = np.mean(allHistogramsArray, axis = 0)
         histogramsErr[key] = np.std(allHistogramsArray, axis = 0)
-        
+        ax.set_xticks([60, 120, 180])
         if suffix != "":
             simtype = f"\nno intermol."
         else:
@@ -330,7 +330,7 @@ def plotBimodalAndDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf
             label=f"$E_U$ = {barrier}kT")
     
         
-        ax.set_xlim([20, 185])
+        ax.set_xlim([20, 200])
         ax.set_ylim([0, np.max(histogramsMean[key] + 500)])
         ax.axvline(60, linestyle = "--", color = "mediumblue")
         ax.axvline(180, linestyle = "--", color = "red")
@@ -340,6 +340,7 @@ def plotBimodalAndDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf
         mode_angle = bin_centers[np.argmax(histogramsMean[key])]
         mean_angle = np.average(bin_centers, weights = histogramsMean[key])
         print(mode_angle, mean_angle)
+
     for barrier in unfoldBarriers:
         if bondsPerAtom == 2:
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
@@ -360,10 +361,10 @@ def plotBimodalAndDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf
             allFilteredCounts.extend(filteredCounts)
             allFilteredAngles.extend(filteredAngles)
 
-        h = ax.hist2d(allFilteredAngles, allFilteredCounts, bins = (40, 40), range = [[20, 185], [0, 200]], norm = mcolors.PowerNorm(0.4), cmap = plt.cm.plasma)
+        h = ax.hist2d(allFilteredAngles, allFilteredCounts, bins = (40, 40), range = [[20, 200], [0, 200]], norm = mcolors.PowerNorm(0.4), cmap = plt.cm.plasma)
         if barrier == 5: 
             ax.add_patch(patches.Rectangle(xy = (120, 0), width = 65, height = 25, linewidth = 1.5, color = "white", linestyle = "--", fill = False))
-
+    ax.set_xticks([60, 120, 180])
     fig.text(0.08, 0.65, "count of molecules", va='center', rotation='vertical', fontsize=15)
     fig.text(0.08, 0.28, "count of molecules in voxel", va='center', rotation='vertical', fontsize=15)
 
@@ -371,7 +372,7 @@ def plotBimodalAndDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf
     fig.text(0.5, 0.04, f"molecule angle (\u03B8)", ha='center', fontsize=15)
 
     #plt.tight_layout()
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/bimodalAndDensityUnfoldedCorr.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/bimodalAndDensityUnfoldedCorr.jpg")
     return
 
 
@@ -448,7 +449,6 @@ def anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLengt
         ax.bar(x + offset, [unfoldedMean[key] / numMol * 100 for key in noperc], width = barWidth, yerr = [unfoldedError[key] / numMol * 100 for key in noperc], color = "lightgrey", bottom = [foldedMean[key] / numMol * 100 for key in noperc], label = "unfolded (no intermol.)")    
     else:
         pass
-    # try replacing a bit with ""
     ax.set_xticks(x)
     ax.set_xticklabels(sorted(set(unfoldBarriers)))
     ax.set_xlabel(f"$E_U$ (kT)", fontsize = 12)
@@ -456,7 +456,7 @@ def anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLengt
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
         fancybox=True, shadow=True, ncol=2)
     plt.tight_layout()
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/barrierAnglePop_vf{vf}.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/barrierAnglePop_vf{vf}.jpg")
     # with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/barrierAnglePop.txt") as f:
     #     f.write(f"# number of folded or unfolded molecules at end of simulation")
     #     f.write(f"E_U\tInteracting?\tfolded\tfolded err\tunfolded\tunfolded err\n")
@@ -509,12 +509,12 @@ def avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLeng
     ax.set_xlabel("simulation frame")
     ax.set_ylabel("number of new unfolding events")
     ax.legend()
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/unfoldingEvents_vf{vf}.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/unfoldingEvents_vf{vf}.jpg")
 
     print("plotted new unfolding events..")
 
     ax.semilogx()
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/unfoldingEvents_vf{vf}_semilog.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/unfoldingEvents_vf{vf}_semilog.jpg")
     plt.close()
 
     print("plotted unfolding events on semilog axis..")

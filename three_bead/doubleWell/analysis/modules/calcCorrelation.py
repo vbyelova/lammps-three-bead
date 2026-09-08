@@ -96,7 +96,7 @@ def densityUnfoldedCorrelation(barrier, refoldBarrier, runNum , vf, numMol, boxL
     plt.xlabel("mean molecule angle")
     meanCorr = np.mean(corrFunc)
     print(meanCorr)
-    plt.savefig(f"../runs/{conditions}/{filename}/analysis/figs/densityUnfoldingCorr.png")
+    plt.savefig(f"../runs/{conditions}/{filename}/analysis/figs/densityUnfoldingCorr.jpg")
     plt.clf()
     #plt.show()
     return allCounts, allMeanAngles, meanCorr, allCountsIncEmpty, allMeanAnglesIncEmpty
@@ -176,7 +176,7 @@ def plotAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol
     fig.supylabel("number of particles in voxel")
     
     plt.tight_layout()
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/avDensityUnfoldedCorr.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/avDensityUnfoldedCorr.jpg")
     plt.show()
     plt.close()
     return

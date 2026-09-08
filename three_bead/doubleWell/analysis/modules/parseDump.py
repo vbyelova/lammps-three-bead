@@ -355,6 +355,7 @@ def plotCentralCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, 
     fig, ax = plt.subplots()
     colours = (["black", "dimgrey", "grey", "darkgrey", "silver"])
     allCentralCoordination = defaultdict(list)
+    percAt = []
     for i, (barrier, suffix) in enumerate(zip(unfoldBarriers, suffixes)):
         if suffix != "":
             continue
@@ -366,6 +367,9 @@ def plotCentralCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, 
                 conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
+        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/avPercolation.pkl", "rb") as f:
+                avPercolation, avPercolationErr = pickle.load(f)
+
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
             print(filename)
@@ -378,17 +382,24 @@ def plotCentralCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, 
             with open(f"../runs/{conditions}/{filename}/analysis/coordination.pkl", "rb") as f:
                 coords = pickle.load(f)
             centralAtomCoordination = coords[2]
-            
+        
         allCentralCoordination[barrier].append(centralAtomCoordination.mean(axis = 1))
         coordArray = np.array(allCentralCoordination[barrier])
         avCentralCoord = coordArray.mean(axis = 0)
         avCentralCoordErr = coordArray.std(axis = 0)
-
+        percAt.append(np.where(avPercolation[barrier] == 3)[0][0])
         ax.errorbar(timesteps, avCentralCoord, yerr = avCentralCoordErr, color = colours[i], label = f"$E_U$ = {barrier}kT")
+        ax.scatter(timesteps[percAt[i]], avCentralCoord[percAt[i]], color = "deeppink", marker = "x", zorder = 10)
+        print(f"barrier = {barrier}kT, coordination = {avCentralCoord[percAt[i]]} +- {avCentralCoordErr[percAt[i]]}, timestep of perc = {timesteps[percAt[i]]}")
+    
     ax.set_xlabel("timesteps", fontsize = 12)
     ax.set_ylabel("central particle coordination", fontsize = 12)
     ax.legend()
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/centralCoord.png")
+    #plt.show()
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/centralCoord.jpg")
+    ax.semilogx()
+    ax.semilogy()
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/centralCoord_semilog.jpg")
 
     return
             # find percolation point
@@ -436,10 +447,10 @@ def plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLe
     ax.set_xlabel("simulation frame")
     ax.set_ylabel("molecule coordination")
     ax.legend()
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/avCoordination_vf{vf}.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/avCoordination_vf{vf}.jpg")
     ax.semilogx()
     ax.set_xlabel("simulation frame (semilog)")
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/avCoordination_vf{vf}_semilog.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/avCoordination_vf{vf}_semilog.jpg")
 
     plt.close()
     print("plotted average molecule coordination..")
@@ -482,9 +493,9 @@ def plotTogether(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, 
     ax2.legend()
     ax3.legend()
 #    ax4.set_ylabel("average pressure")
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/sharedaxis_vf{vf}.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/sharedaxis_vf{vf}.jpg")
     ax1.semilogx()
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/sharedaxis_vf{vf}_semilog.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/sharedaxis_vf{vf}_semilog.jpg")
     plt.close()
 
 def plotTogetherShifted(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob):
@@ -539,11 +550,11 @@ def plotTogetherShifted(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxL
     ax3.legend()
     ax4.legend()
     ax4.set_ylabel("average pressure")
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/shifted_sharedaxis_vf{vf}.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/shifted_sharedaxis_vf{vf}.jpg")
     ax1.semilogx()
     ax1.set_xlabel("timesteps shifted")
     
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/shifted_sharedaxis_vf{vf}_semilog.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/shifted_sharedaxis_vf{vf}_semilog.jpg")
     plt.close()
 
 def plotTotalInterMol(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes):

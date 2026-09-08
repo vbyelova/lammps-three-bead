@@ -77,7 +77,7 @@ def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particle
         
             r, g, b = angleToColour(angle, minAngle, maxAngle)
             
-            #if 20 < z < 30:
+            # if 10 < z < 25:
             frame_cgo.extend([cgo.COLOR, r, g, b, cgo.SPHERE, x, y, z, parRadius])
         # for pore in pores:
         #     x, y, z = pore["pos"]

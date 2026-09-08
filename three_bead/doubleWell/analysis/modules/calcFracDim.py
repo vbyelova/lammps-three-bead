@@ -104,7 +104,7 @@ def avBoxCounting(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength,
         plt.xlim(math.floor(min(logInverseVoxelSizes)), int(max(logInverseVoxelSizes)))
         plt.tight_layout()
         plt.axvline(breaks[1], linestyle = "--", color = "darkgrey")
-        plt.savefig(f"../runs/{conditions}/averagedFigs/avBoxCount.png")
+        plt.savefig(f"../runs/{conditions}/averagedFigs/avBoxCount.jpg")
         plt.clf()
     return
 
@@ -251,7 +251,7 @@ def plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, bo
     ax1.set_ylabel(f"Fractal dimension $D_f$", fontsize = 15)
     ax1.tick_params(axis = "y")
     #ax.set_title("Fractal dimension through box counting method")
-    #plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/fractalDim_vf{vf}.png")
+    #plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/fractalDim_vf{vf}.jpg")
     ax1.set_xticks([1, 2, 3, 4, 5])
     ax1.set_xticklabels([1, 2, 3, 4, 5])
     ax2 = ax1.twinx()
@@ -270,7 +270,7 @@ def plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, bo
     #ax1.axhline(boxLength, linestyle = "--", color = "black")
     plt.tight_layout()
     #ax.set_title("Cluster sizes at different simulation points")
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/corrLength_vf{vf}.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/corrLength_vf{vf}.jpg")
     print("saved fractal dim figure..")
     plt.close()
 
@@ -279,7 +279,7 @@ def plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, bo
 
 def plotTwoVfFractalDim(unfoldBarriers, refoldBarrier, numRuns, vfs, numMols, boxLengths, bondsPerAtom, prob):
 
-    colors = ["darkorange", "slateblue"]
+    colors = ["darkturquoise", "purple"]
     
     fig1, ax1 = plt.subplots()
     fig2, ax2 = plt.subplots()
@@ -306,11 +306,13 @@ def plotTwoVfFractalDim(unfoldBarriers, refoldBarrier, numRuns, vfs, numMols, bo
                       yerr=[simEndAvCorrLengthErr[b] / 2**(1/6) for b in unfoldBarriers],
                       color=colors[i], marker="D", label = f"box length = {int(converted_bl)}$r_c$")
         ax2.axhline(converted_bl, color = colors[i], linestyle = "--")
-    ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
-        fancybox=True, shadow=True, ncol=2, fontsize = 12)
-    ax2.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
-        fancybox=True, shadow=True, ncol=2, fontsize = 12)
+    # ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
+    #     fancybox=True, shadow=True, ncol=2, fontsize = 12)
+    # ax2.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
+    #     fancybox=True, shadow=True, ncol=2, fontsize = 12)
 
+    ax1.legend()
+    ax2.legend(loc = "upper right", bbox_to_anchor = (1, 0.8))
     ax1.set_xlabel(f"$E_U$ (kT)", fontsize = 15)
     ax1.set_ylabel(f"Fractal dimension $D_f$", fontsize = 15)
     ax1.tick_params(axis = "y")
@@ -325,9 +327,9 @@ def plotTwoVfFractalDim(unfoldBarriers, refoldBarrier, numRuns, vfs, numMols, bo
     ax2.set_xticklabels([1, 2, 3, 4, 5])
     fig2.tight_layout()
 
-    fig1.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/two_fractalDim_vf{vfs[0], vfs[1]}.png")
+    fig1.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/two_fractalDim_vf{vfs[0], vfs[1]}.jpg")
 
-    fig2.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/two_CorrLen_{vfs[0], vfs[1]}.png")
+    fig2.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/two_CorrLen_{vfs[0], vfs[1]}.jpg")
     print("saved fractal dim figure..")
     plt.close()
 

@@ -20,9 +20,9 @@ barrierToUnfold = [10]
 barrierToRefold = 2
 
 numRuns = 10
-vf = [0.00001]
+vf = [0.07]
 
-boxLength = 50
+boxLength = 100
 prob = 1 # probability of unfolding
 bondsPerAtom = 2
 

@@ -15,17 +15,20 @@ from modules.threeBeadClasses import *
 from modules.parseRDF import *
 from modules.calcPorosity import *
 
+# get real parameters out
 realRadius = 30e-10
 kT = 298 * 1.38e-23 # J / K
 viscosity = 0.89e-3 # Pa * s, https://wiki.anton-paar.com/uk-en/water/ 
 
 diffReal = kT / (6 * np.pi * viscosity * realRadius)
 
+# approximation of if the three beads are a sphere, what the sphere's radius would be
 parRadius = 2 ** (1/6)
 simRadius = parRadius + (0.5 * parRadius) / (np.sqrt(3) / 2)
 scaleFactor = realRadius / simRadius
 
 def MSD(particles, frames, timesteps):
+    """retrieves particle x, y, z coordinates and calculates the mean squared displacement from t = 0."""
     msd = []
 
     for frame in range(0, frames):
@@ -41,9 +44,10 @@ def MSD(particles, frames, timesteps):
 
     return msd
 
-barrier = 10
+# parameters for single molecule simulations
+barrier = 100
 refoldBarrier = 2
-vf = 1e-05
+vf = 1e-06
 numMol = 1
 numRuns = 20
 
@@ -65,6 +69,7 @@ for runNum in range(0, numRuns):
     newMsd = MSD(particles, frames, timesteps)
     allMsds.append(newMsd)
 
+# average together all msds
 allMsds = np.array(allMsds)
 avMsd = allMsds.mean(axis = 0)
 avMsdErr = allMsds.std(axis = 0) / np.sqrt(numRuns)
@@ -72,13 +77,17 @@ avMsdErr = allMsds.std(axis = 0) / np.sqrt(numRuns)
 time = np.array(timesteps) * dt
 
 plt.scatter(time, avMsd)
+plt.ylabel("av msd")
+plt.xlabel("time")
 plt.show()
 
+# get the non-weird bit
 start = int(0.2 * len(time))
 end = int(0.9 * len(time))
-slope, intercept = np.polyfit(time[start:end], avMsd[start:end], 1)
+slope, intercept = np.polyfit(time, avMsd, 1)
 diffSim = slope / 6
 
+# convert to real time scale
 timescale = diffSim * scaleFactor **2 / diffReal
 realTime = time[-1] * timescale
 print(realTime)

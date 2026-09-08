@@ -77,10 +77,10 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
                 with open(f"../runs/{conditions}/timesteps.pkl", "wb") as f:
                     pickle.dump(timesteps, f)
 
-        if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/coordination.pkl"):
-            coord = coordination(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix)
-            with open(f"../runs/{conditions}/{filename}/analysis/coordination.pkl", "wb") as f:
-                pickle.dump(coord, f)
+        # if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/coordination.pkl"):
+        #     coord = coordination(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix)
+        #     with open(f"../runs/{conditions}/{filename}/analysis/coordination.pkl", "wb") as f:
+        #         pickle.dump(coord, f)
 
         # check if bonds have been counted yet
         if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl"):
@@ -182,12 +182,13 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
 #plotTogether(unfoldBarriers, refoldBarrier, numRuns, numMol ,vf, boxLength)
 #anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
 #plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes)
-#plotBimodalAndDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
+plotBimodalAndDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
 #plotUnfoldedOverTime(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
 #plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes)
 #plotTotalInterMol(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom)
 #plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
 #plotFolded(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
 #plotTwoVfFractalDim(unfoldBarriers, refoldBarrier, numRuns, [0.07, 0.07], [31512, 3939], [100, 50], bondsPerAtom, prob)
-plotCentralCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes)
+#plotCentralCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes)
+
 print("done :D")

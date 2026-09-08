@@ -121,7 +121,7 @@ def plotAvRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bon
     ax.set_ylabel("g(r)")
     ax.legend()
     ax.set_title(f"RDF for vf = {vf}")
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/rdf{vf}.png")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/rdf{vf}.jpg")
     plt.show()
     print(f"plotted rdf for vf = {vf}..")
     return avRDFs, avRDFsErr, shellBounds
