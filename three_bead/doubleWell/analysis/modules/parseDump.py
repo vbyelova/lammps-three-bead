@@ -80,34 +80,32 @@ def parseBondInfo(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPe
     with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
         nBonds = pickle.load(f)
 
-    frame = 0
-    bondCounter = 0
-    bondInfo = defaultdict(list)
-
-    for x, num in enumerate(nBonds):
-        bondInfo[x] = [Bond() for n in range(nBonds[x])]
-    
-    print("saving bond force and direction.. ")
-    with open(f"../runs/{conditions}/{filename}/output/bondinfo.dat", "r") as f:
+    bondInfo = {}
+    dumpSteps = []
+    with open(f"../runs/{conditions}/{filename}/output/bondinfo.dat") as f:
+        frame = -1
         for line in f:
-            if re.search(r"\d+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+", line):
-                #print("matched")
-                lineData = line.rsplit()
-                num = int(lineData[0]) - 1 # change to 0 indexing
-                for x in range(0, 9):
-                    bondInfo[frame][num].properties[0 + x] = lineData[x]
-                
-                bondCounter += 1
-                if bondCounter == nBonds[frame]:
-                    bondCounter = 0
-                    frame += 1
-                    if frame == len(nBonds):
-                        break
+            if line.startswith("ITEM: TIMESTEP"):
+                dumpSteps.append(int(f.readline()))
+            elif line.startswith("ITEM: NUMBER OF ENTRIES"):
+                n = int(f.readline())
+            elif line.startswith("ITEM: ENTRIES"):
+                frame += 1
+                rows = [f.readline().split() for _ in range(n)]
+                bondInfo[frame] = np.array(rows, dtype=float)
+                assert n == nBonds[frame], (frame, n, nBonds[frame])
     
-    print("len bond info ", len(bondInfo))
-    print("len nbonds ",len(nBonds))
-    print("num frames ", frame)
 
+    pat = re.compile(r"\d+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+")
+    matched, missed = 0, []
+    with open(f"../runs/{conditions}/{filename}/output/bondinfo.dat") as f:
+        for line in f:
+            if line.startswith("ITEM") or len(line.split()) != 10:
+                continue
+            if pat.search(line): matched += 1
+            else: missed.append(line)
+    print(matched, sum(nBonds), len(missed))
+    print(missed[:5])
     return bondInfo
 
 
@@ -318,36 +316,24 @@ def coordination(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob,
         bondInfo = pickle.load(f)
     frame = 0
     bondCounter = 0
+    intermol = 0
     atomCoordination = np.zeros((len(timesteps), numMol * 3))
     moleculeCoordination = np.zeros((len(timesteps), numMol))
     trackedBonds = set()
-    while frame < len(nBonds):
-        bondedAtom1 = int(bondInfo[frame][bondCounter].properties[1]) - 1
-        bondedAtom2 = int(bondInfo[frame][bondCounter].properties[2]) - 1
+    
+    for frame in range(len(timesteps)):
+        b = bondInfo[frame]
+        a1 = b[:, 1].astype(int) - 1
+        a2 = b[:, 2].astype(int) - 1
+        inter = (a1 // 3) != (a2 // 3)
+        pairs = np.unique(np.sort(np.stack([a1[inter], a2[inter]], axis=1), axis=1), axis=0)
+        atomCoordination[frame] = np.bincount(pairs.ravel(), minlength=numMol * 3)
+        moleculeCoordination[frame] = np.bincount(pairs.ravel() // 3, minlength=numMol)
+        if len(b) - len(pairs) != 2 * numMol:
+            print(f"frame {frame}: intra = {len(b) - len(pairs)}, expected {2*numMol}")
 
-        mol1 = bondedAtom1 // 3
-        mol2 = bondedAtom2 // 3
-        if mol1 != mol2:
-            # intermolecular bond case
-            bondID = tuple(sorted([bondedAtom1, bondedAtom2]))
-            
-            if bondID not in trackedBonds:
-                trackedBonds.add(bondID)
-                atomCoordination[frame][bondedAtom1] += 1
-                atomCoordination[frame][bondedAtom2] += 1
-                moleculeCoordination[frame][mol1] += 1
-                moleculeCoordination[frame][mol2] += 1
 
-        
-        bondCounter += 1
-        if bondCounter == nBonds[frame]:
-            trackedBonds.clear()
-            bondCounter = 0 
-            frame += 1
-            print("frame ", frame)
-
-        centralAtomCoordination = atomCoordination[:, 1::3]
-
+    centralAtomCoordination = atomCoordination[:, 1::3]
     print("counted intermolecular bonds per atom..")
     return moleculeCoordination, atomCoordination, centralAtomCoordination
 
@@ -375,15 +361,16 @@ def plotCentralCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, 
             print(filename)
             with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "rb") as f:
                 percDims = pickle.load(f)
-            with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
-                nBonds = pickle.load(f)
-            with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "rb") as f:
-                bondInfo = pickle.load(f)            
-            with open(f"../runs/{conditions}/{filename}/analysis/coordination.pkl", "rb") as f:
-                coords = pickle.load(f)
+            # with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
+            #     nBonds = pickle.load(f)
+            # with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "rb") as f:
+            #     bondInfo = pickle.load(f)            
+            # with open(f"../runs/{conditions}/{filename}/analysis/coordination.pkl", "rb") as f:
+            #     coords = pickle.load(f)
+            coords = coordination(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix)
             centralAtomCoordination = coords[2]
         
-        allCentralCoordination[barrier].append(centralAtomCoordination.mean(axis = 1))
+            allCentralCoordination[barrier].append(centralAtomCoordination.mean(axis = 1))
         coordArray = np.array(allCentralCoordination[barrier])
         avCentralCoord = coordArray.mean(axis = 0)
         avCentralCoordErr = coordArray.std(axis = 0)
@@ -411,9 +398,11 @@ def plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLe
     allCoordination = defaultdict(list)
     avCoordination = {}
     avCoordinationErr = {}
+    percAt = []
+    colours = (["black", "dimgrey", "grey", "darkgrey", "silver"])
 
     fig, ax = plt.subplots()
-    for barrier, suffix in zip(unfoldBarriers, suffixes):
+    for i, (barrier, suffix) in enumerate(zip(unfoldBarriers, suffixes)):
         if suffix != "":
             continue
         if bondsPerAtom == 2:
@@ -424,37 +413,40 @@ def plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLe
                 conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
+        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/avPercolation.pkl", "rb") as f:
+            avPercolation, avPercolationErr = pickle.load(f)
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
             print(filename)
             with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "rb") as f:
                 percDims = pickle.load(f)
-            with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
-                nBonds = pickle.load(f)
-            with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "rb") as f:
-                bondInfo = pickle.load(f)            
+            # with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
+            #     nBonds = pickle.load(f)
+            # with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "rb") as f:
+            #     bondInfo = pickle.load(f)            
             molCoordination = (coordination(barrier, refoldBarrier, runNum, vf, numMol,
-                                        nBonds, bondInfo, bondsPerAtom, prob, suffix))[0]
+                                            bondsPerAtom, prob, suffix))[0]
             avCoordinationPerFrame = molCoordination.mean(axis = 1)
             allCoordination[barrier].append(avCoordinationPerFrame)
         coordinationArray = np.array(allCoordination[barrier])
         avCoordination[barrier] = coordinationArray.mean(axis = 0)
         avCoordinationErr[barrier] = coordinationArray.std(axis = 0)
-
+        print(f"minimum coordination is {min(avCoordination[barrier])}, maximum is {max(avCoordination[barrier])}, end is {avCoordination[barrier][-1]}")
+        percAt.append(np.where(avPercolation[barrier] == 3)[0][0])
+        ax.scatter(timesteps[percAt[i]], avCoordination[barrier][percAt[i]], color = "deeppink", marker = "x", zorder = 10)
 
         ax.errorbar(timesteps, avCoordination[barrier], yerr = avCoordinationErr[barrier],
-                    label = f"barrier = {barrier}kT")
+                    color = colours[i], label = f"$E_U$ = {barrier}kT")
     ax.set_xlabel("simulation frame")
     ax.set_ylabel("molecule coordination")
     ax.legend()
     plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/avCoordination_vf{vf}.jpg")
     ax.semilogx()
-    ax.set_xlabel("simulation frame (semilog)")
     plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/avCoordination_vf{vf}_semilog.jpg")
 
-    plt.close()
     print("plotted average molecule coordination..")
     return avCoordination, avCoordinationErr
+
 
 def plotTogether(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob):
     with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avNewUnfoldedMol.pkl", "rb") as f:

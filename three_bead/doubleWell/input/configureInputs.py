@@ -19,10 +19,10 @@ from modules.generateRDF import *
 barrierToUnfold = [10]
 barrierToRefold = 2
 
-numRuns = 10
+numRuns = 1
 vf = [0.07]
 
-boxLength = 100
+boxLength = 30
 prob = 1 # probability of unfolding
 bondsPerAtom = 2
 
@@ -55,6 +55,7 @@ for volfrac in vf:
             if not os.path.exists(f"../runs/{conditions}/{filename}/output"):
                 os.makedirs(f"../runs/{conditions}/{filename}/output")
                 generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom)
+                shearingInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom)
             if not os.path.exists(f"../runs/{conditions}/{filename}/analysis"):
                 os.makedirs(f"../runs/{conditions}/{filename}/analysis")
 

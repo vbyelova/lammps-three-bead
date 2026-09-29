@@ -63,7 +63,7 @@ def unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles, bondsP
     print("generated list of unfolded molecules..")
     return unfoldedMols
 
-def unfoldedOverTime(unfoldBarrier, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
+def unfoldedOverTime(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
     """calculates number of molecules unfolded over course of simulation."""
     allUnfold = defaultdict(list)
     avUnfold = {}
@@ -72,7 +72,7 @@ def unfoldedOverTime(unfoldBarrier, refoldBarrier, numRuns, vf, numMol, boxLengt
     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/avPercolation.pkl", "rb") as f:
         avPercolation, avPercolationErr = pickle.load(f)
 
-    for barrier, suffix in zip(unfoldBarrier, suffixes):
+    for barrier, suffix in zip(unfoldBarriers, suffixes):
         key = (barrier, suffix)
         if bondsPerAtom == 2:
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
@@ -237,7 +237,7 @@ def bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob,
     plt.xlabel("molecule angle \u03B8")
     plt.ylabel("number of molecules")
     plt.title("Bimodal distribution of folded and unfolded molecules")
-    plt.savefig(f"../runs/{conditions}/{filename}/analysis/figs/bimodalAngleDist")
+    plt.savefig(f"../runs/{conditions}/{filename}/analysis/figs/bimodalAngleDist.png")
     plt.close()
     print("plotted histogram of angle distribution in system..")
     return hist, bins, finalFrameAngles
@@ -580,5 +580,60 @@ def plotFolded(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bo
     ax.semilogy()
     ax.semilogx()
     plt.show()
+
+    return
+
+
+def plotCrosslinkPercentAtPercAndSimEnd(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes):
+    percAt = []
+    colours = (["black", "dimgrey", "grey", "darkgrey", "silver"])
+    allnBonds = defaultdict(list)
+    avnBonds = {}
+    avnBondsErr = {}
+
+    fig, ax1 = plt.subplots()
+    for i, (barrier, suffix) in enumerate(zip(unfoldBarriers, suffixes)):
+        if bondsPerAtom == 2:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+        else:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+            if prob < 1:
+                conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
+        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/avPercolation.pkl", "rb") as f:
+            avPercolation, avPercolationErr = pickle.load(f)
+        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/unfoldedOverTime.pkl", "rb") as f:
+            avUnfold, avUnfoldErr = pickle.load(f)
+        for runNum in range(numRuns):
+            filename = f"Run{runNum}_{conditions}"
+            with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
+                nBonds = pickle.load(f)
+            allnBonds[barrier].append(nBonds)
+        avnBondsArray = np.array(allnBonds[barrier])
+        percentage = ((avnBondsArray - numMol * 2) / (numMol * 3) )* 100
+        avnBonds[barrier] = percentage.mean(axis = 0)
+        avnBondsErr[barrier] = percentage.std(axis = 0)
+        percAt.append(np.where(avPercolation[barrier] == 3)[0][0])
+    atPercBonds = ax1.errorbar(unfoldBarriers, [avnBonds[b][percAt[i]]for b in unfoldBarriers],
+                                yerr = [avnBondsErr[b][percAt[i]] for b in unfoldBarriers], color = "cornflowerblue", fmt = "D--", mfc = "none", label = "at gelation")
+    simEndBonds = ax1.errorbar(unfoldBarriers, [avnBonds[b][-1] for b in unfoldBarriers],
+                                yerr = [avnBondsErr[b][-1] for b in unfoldBarriers], color = "cornflowerblue", fmt = "D--", label = "at simulation end")
+    ax1.set_xlabel("$E_U$ (kT)", fontsize = 12)
+    ax1.set_xticks([1, 2, 3, 4, 5])
+    ax1.set_xticklabels([1, 2, 3, 4, 5])
+    ax1.set_ylabel("possible crosslinks made (%)", fontsize = 12, color = "cornflowerblue")
+    ax2 = ax1.twinx()
+
+    atPercUnfold = ax2.errorbar(unfoldBarriers, [(avUnfold[b, s][percAt[i]] / numMol) * 100 for b, s in zip(unfoldBarriers, suffixes) ],
+                  yerr = [(avUnfoldErr[b, s][percAt[i]] / numMol) * 100 for b, s in zip(unfoldBarriers, suffixes)],
+                color = "red", fmt = "D--", mfc = "none", label = "at gelation")
+    simEndUnfold = ax2.errorbar(unfoldBarriers, [(avUnfold[b, s][-1] / numMol) * 100 for b, s in zip(unfoldBarriers, suffixes)],
+                  yerr = [(avUnfoldErr[b, s][-1] / numMol) * 100 for b, s in zip(unfoldBarriers, suffixes)], color = "red", fmt = "D--",
+                 label = "at simulation end")
+    lines, labels = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax2.legend(lines + lines2, labels + labels2, loc = "right")
+    ax2.set_ylabel("unfolded molecules (%)", color = "red")
+    plt.tight_layout()
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/crosslinkPercent.jpg")
 
     return

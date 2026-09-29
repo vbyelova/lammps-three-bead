@@ -89,8 +89,8 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
         f.write(f"pair_modify shift yes\n\n")
 
         f.write(f"include ../../angleInfo.in\n")
-        f.write(f"compute angles all angle/local theta\n")
-        f.write(f"compute angle_pe all angle/local eng\n\n")
+        # f.write(f"compute angles all angle/local theta\n")
+        # f.write(f"compute angle_pe all angle/local eng\n\n")
 
         f.write(f"fix bd_nve all nve\n")
         f.write(f"fix bd_langevin all langevin 1 1 10 {seed}\n")
@@ -98,47 +98,47 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
                 f" 1 jparam {bondsPerAtom} 1 molecule inter prob {prob} {seed}\n\n")
         
         # a bunch of computes
-        f.write(f"# compute commands for analysis\n\n")
-        f.write(f"compute intra all nbond/atom bond/type 1\n")
-        f.write(f"compute inter all nbond/atom bond/type 2\n")
-        f.write(f"compute totalbonds all count/type bond\n")
-        f.write(f"variable totalintra equal c_totalbonds[1]\n")
-        f.write(f"variable totalinter equal c_totalbonds[2]\n")
-        f.write(f"variable allbonds equal v_totalintra+v_totalinter\n\n")
+        # f.write(f"# compute commands for analysis\n\n")
+        # f.write(f"compute intra all nbond/atom bond/type 1\n")
+        # f.write(f"compute inter all nbond/atom bond/type 2\n")
+        # f.write(f"compute totalbonds all count/type bond\n")
+        # f.write(f"variable totalintra equal c_totalbonds[1]\n")
+        # f.write(f"variable totalinter equal c_totalbonds[2]\n")
+        # f.write(f"variable allbonds equal v_totalintra+v_totalinter\n\n")
 
-        f.write(f"compute bondedatomid1 all property/local batom1\n")
-        f.write(f"compute bondedatomid2 all property/local batom2\n")
-        f.write(f"compute btype all property/local btype\n")
-        f.write(f"compute bondforce all bond/local fx fy fz\n")
-        f.write(f"compute bonddir all bond/local dx dy dz\n")
-        f.write(f"compute bondlen all bond/local dist\n")
-        f.write(f"variable vol equal lx*ly*lz\n\n")
+        # f.write(f"compute bondedatomid1 all property/local batom1\n")
+        # f.write(f"compute bondedatomid2 all property/local batom2\n")
+        # f.write(f"compute btype all property/local btype\n")
+        # f.write(f"compute bondforce all bond/local fx fy fz\n")
+        # f.write(f"compute bonddir all bond/local dx dy dz\n")
+        # f.write(f"compute bondlen all bond/local dist\n")
+        # f.write(f"variable vol equal lx*ly*lz\n\n")
 
         # more dumps
 
-        f.write(f"# dump commands\n\n")
-        f.write(f"undump 1\n")
-        f.write(f"reset_timestep 0\n")
-        f.write(f"dump 1 all custom 1000 ../output/dump.lammpstrj"
-                f" id x y z type mol\n")
-        f.write(f"dump_modify 1 sort id\n")
-        f.write(f"dump_modify 1 every v_s\n\n")
+        # f.write(f"# dump commands\n\n")
+        # f.write(f"undump 1\n")
+        # f.write(f"reset_timestep 0\n")
+        # f.write(f"dump 1 all custom 1000 ../output/dump.lammpstrj"
+        #         f" id x y z type mol\n")
+        # f.write(f"dump_modify 1 sort id\n")
+        # f.write(f"dump_modify 1 every v_s\n\n")
 
-        f.write(f"compute myrdf all rdf {halfLength} 1 1\n")
-        f.write(f"fix rdfstuff all ave/time 1000 1 1000 c_myrdf[*] "
-                f"file ../output/rdf.dat mode vector\n\n")
+        # f.write(f"compute myrdf all rdf {halfLength} 1 1\n")
+        # f.write(f"fix rdfstuff all ave/time 1000 1 1000 c_myrdf[*] "
+        #         f"file ../output/rdf.dat mode vector\n\n")
 
-        f.write(f'fix nbondsfile all print v_s "${{allbonds}} " file'
-                f' ../output/nbonds.dat screen no\n')
-        f.write(f"dump bondinfo all local 1000 ../output/bondinfo.dat"
-                f" index c_bondedatomid1 c_bondedatomid2"
-                f" c_bondforce[*] c_bonddir[*] c_bondlen\n")
+        # f.write(f'fix nbondsfile all print v_s "${{allbonds}} " file'
+        #         f' ../output/nbonds.dat screen no\n')
+        # f.write(f"dump bondinfo all local 1000 ../output/bondinfo.dat"
+        #         f" index c_bondedatomid1 c_bondedatomid2"
+        #         f" c_bondforce[*] c_bonddir[*] c_bondlen\n")
 
-        f.write(f"dump angles all local 1000 ../output/moleculeangles.dat"
-                f" index c_angles c_angle_pe\n\n")
+        # f.write(f"dump angles all local 1000 ../output/moleculeangles.dat"
+        #         f" index c_angles c_angle_pe\n\n")
         
-        f.write(f"dump_modify bondinfo every v_s\n\n")
-        f.write(f"dump_modify angles every v_s\n\n")
+        # f.write(f"dump_modify bondinfo every v_s\n\n")
+        # f.write(f"dump_modify angles every v_s\n\n")
 
 
         # let's run the main sim
@@ -148,4 +148,63 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
         f.write(f"neigh_modify every 1 delay 2 check yes\n")
         f.write(f"run {Nsteps}\n")
 
+        f.write(f"write_restart restart.gel")
+
     print(f"file written to ../runs/{conditions}/{filename}")
+
+def shearingInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom):
+    Nsteps = 700000 
+    r_cutoff = 1.112462048
+    seed = randint(100000, 999999)
+    comm = 10
+    numPar = numMol * 3
+    tstep = 0.001
+    halfLength = int(0.5 * boxLength)
+
+    print("writing input file..")
+
+    # actually write the lammps input file now
+    with open(f"../runs/{conditions}/{filename}/input/shearing_in.lammps", "w") as f:
+        # set some simulation variables
+        f.write(f"# simulation variables\n\n")
+        f.write(f"variable Nsteps         equal {Nsteps}\n")
+        f.write(f"variable Nwrite         equal 1000\n")
+        f.write(f"variable seed           equal {seed}\n")
+        f.write(f"variable boxLength      equal lx\n")
+        f.write(f"variable r_cutoff       equal {r_cutoff}\n")
+        f.write(f"variable s              equal logfreq3(10,100,{Nsteps})\n")
+        f.write(f"variable prob           equal {prob}\n\n")
+
+        # now some configuration stuff
+        f.write(f"# configure simulation\n\n")
+        f.write(f"boundary p p p\n")
+        f.write(f"read_restart restart.gel\n"
+                f"extra/bond/per/atom {bondsPerAtom} extra/special/per/atom {bondsPerAtom}00\n")
+        f.write(f"change_box all triclinic")
+
+        f.write(f"log mech_input_log.lammps\n")
+
+        # print thermodynamic info
+        f.write(f"thermo 1000\n")
+
+        f.write(f"include ../../angleInfo.in\n\n")
+        f.write(f"fix bd_nve all nve\n")
+        f.write(f"fix bd_langevin all langevin 1 1 10 {seed}\n")
+        f.write(f"fix percolate all bond/create 1 1 1 {r_cutoff} 2 iparam {bondsPerAtom}"
+                f" 1 jparam {bondsPerAtom} 1 molecule inter prob {prob} {seed}\n\n")
+
+        f.write(f"# reneighbour and reset image flags after box change\n")
+        f.write(f"reset_atoms image all\n")
+        f.write(f"run zero\n")
+
+        f.write(f"reset_timestep 0\n")
+        f.write(f"dump 1 all custom 1000 ../output/mech_dump.lammpstrj"
+                f" id x y z type mol\n")
+        f.write(f"dump_modify 1 sort id\n")
+        f.write(f"neighbor 0.5 bin\n")
+        f.write(f"neigh_modify every 1 delay 2 check yes\n")
+        f.write(f"run {Nsteps}\n")
+
+        f.write(f"run 10000\n")
+
+    print("made shearing input file")
