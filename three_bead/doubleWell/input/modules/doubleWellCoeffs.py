@@ -57,7 +57,7 @@ def objective(params, theta_min1, theta_min2, barrierToUnfold, barrierToRefold):
     return error
 
 def calcDoubleWellCoeffs(barrierToUnfold, barrierToRefold):
-
+    """uses objective function to estimate the coefficients for the quartic function."""
     # parameters
     # first minimum
     theta_min1 = np.pi / 3
@@ -168,6 +168,7 @@ def threeExamples(unfoldBarriers, barrierToRefold = 2):
     plt.show()
 
 def writeAngleFile(theta0, k2, k3, k4, conditions):
+    """writes out the coefficients and angles to a file to be used by lammps"""
     with open(f"../runs/{conditions}/angleInfo.in", "w") as f:
         f.write(f"# angle coefficents as calculated \n")
         f.write(f"angle_style lepton no_offset \n")

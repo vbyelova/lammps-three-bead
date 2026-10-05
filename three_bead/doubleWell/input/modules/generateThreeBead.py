@@ -1,5 +1,4 @@
 # a python code to generate coordinates for N three bead molecules.
-# modified so that only sticker-hinge bonds exist for double-well potential.
 
 import numpy as np
 from numpy import random
@@ -129,6 +128,7 @@ def writeFile(filename, particles, numMol, boxLength):
 
 
 def generateThreeBead(filename, numMol, boxLength):
+    """creates a list of three bead molecules and generates a lammps input file"""
     particles = [Particle() for _ in range(numMol * 3)]
     parPerSide = int(np.ceil(numMol ** (1 / 3)))
     while parPerSide **3 < numMol:

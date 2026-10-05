@@ -47,6 +47,7 @@ def plotForceMagnitude(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondI
     plt.show()
 
 def calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInfo, boxLength, bondsPerAtom, prob, suffix):
+    """calculates the stress tensor from individual bond forces and vectors."""
     if bondsPerAtom == 2:
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
     else:
@@ -77,29 +78,8 @@ def calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInf
             frame += 1
     return avStressTensors
 
-def calcPressure(barrier, refoldBarrier, runNum, vf, numMol, nBonds, avStressTensors, bondsPerAtom, prob, suffix):
-
-    if bondsPerAtom == 2:
-        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
-    else:
-        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
-        if prob < 1:
-            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
-    filename = f"Run{runNum}_{conditions}"
-    with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
-        timesteps = pickle.load(f)
-    pressure = []
-    frames = [n for n in range(0, int(len(timesteps)))]
-    for tensor in avStressTensors:
-        pressure.append(np.trace(tensor) / 3)
-    
-    plt.plot(frames[:-2], pressure[:-2])
-    plt.xlabel("simulation frame")
-    plt.ylabel("pressure")
-    plt.show()
-    
-
 def calcAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
+    """calculates the average pressure per energetic barrier over time. uses contributions from bonds only."""
     allPressure = defaultdict(list)
     avPressure = {}
     avPressureErr = {}
@@ -136,7 +116,7 @@ def calcAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength
     return avPressure, avPressureErr
 
 def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
-    
+    """plots the calculated pressure over time per energetic barrier."""
     colours = (["black", "dimgrey", "grey", "darkgrey", "silver"])
     percAt = []
     noperc = []

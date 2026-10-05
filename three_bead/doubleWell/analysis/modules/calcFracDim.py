@@ -62,7 +62,8 @@ def boxCounting(filename, boxLength, timesteps, percDims, atPerc):
     return np.array(totalUniqueVoxels)
         
 def avBoxCounting(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
-    
+    """averages the counts produced in boxCounting and plots them together. Takes the fractal dimension and
+        correlation length from the average."""
     for i, (barrier, suffix) in enumerate(zip(unfoldBarriers, suffixes)):
         allUniqueCounts = []
         if bondsPerAtom == 2:
@@ -109,7 +110,7 @@ def avBoxCounting(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength,
     return
 
 def calcFractalDimension(unfoldBarrier, refoldBarrier, runNum, vf, numMol, totalUniqueVoxels, boxLength, percDims, atPerc, bondsPerAtom, prob, suffix):
-    """calculates the fractal dimension for a single run"""
+    """calculates the fractal dimension for a single run using a box counting algorithm"""
     if bondsPerAtom == 2:
         conditions = f"unfold{unfoldBarrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
     else:
@@ -226,9 +227,8 @@ def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
     return finalFractalDims, finalFractalDimsError, avCorrLength, avCorrLengthErr
 
 def plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob):
-
     """plots a scatter graph of what the average fractal dimension is with each unfolding barrier
-        at percolation and at the end of the simulation."""
+        at percolation and at the end of the simulation, also plots correlation length."""
     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/atPercFractalDims.pkl", "rb") as f:
         atPercFinalFractalDims, atPercFinalFractalDimsError, atPercAvCorrLength, atPercAvCorrLengthErr =  pickle.load(f)
 
@@ -278,7 +278,8 @@ def plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, bo
             atPercAvCorrLength, atPercAvCorrLengthErr, simEndAvCorrLength, simEndAvCorrLengthErr)
 
 def plotTwoVfFractalDim(unfoldBarriers, refoldBarrier, numRuns, vfs, numMols, boxLengths, bondsPerAtom, prob):
-
+    """plots the volume fractions of two different system sizes at percolation and post-relaxation.
+        Does the same for correlation length and also plots the system size on the same graph."""
     colors = ["darkturquoise", "purple"]
     
     fig1, ax1 = plt.subplots()

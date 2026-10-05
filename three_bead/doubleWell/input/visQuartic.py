@@ -6,10 +6,8 @@ import os
 
 from modules.doubleWellCoeffs import *
 from modules.generateMonomer import *
-from modules.generateDimer import *
 from modules.generateThreeBead import *
 from modules.generateLammpsInput import *
-from modules.generateRDF import *
 
 #generate optimal values for quartic function
 

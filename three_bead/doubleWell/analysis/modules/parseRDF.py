@@ -81,6 +81,7 @@ def posRDF(barrier, refoldBarrier, runNum, vf, numMol, boxLength, particles, bon
     return rdfSet, shellBounds
 
 def calcPosRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob,suffixes):
+    """calculates average radial distribution function per energetic barrier."""
     allRDFsets = defaultdict(list)
     avRDFs = {}
     avRDFsErr = {}
@@ -109,13 +110,14 @@ def calcPosRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bo
     return avRDFs, avRDFsErr, shellBounds
 
 def plotAvRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
+    """plots radial distribution function for each energetic barrier."""
     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avRDF.pkl", "rb") as f:
         avRDFs, avRDFsErr, shellBounds = pickle.load(f)
         
     fig, ax = plt.subplots()
     for barrier in unfoldBarriers:
         ax.errorbar(shellBounds, avRDFs[barrier], yerr = avRDFsErr[barrier],
-                    label = f"barrier = {barrier}kT")
+                    label = f"$E_U$ = {barrier}kT")
         
     ax.set_xlabel("r")
     ax.set_ylabel("g(r)")

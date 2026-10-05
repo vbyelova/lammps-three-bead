@@ -6,26 +6,6 @@ from pymol import cgo, cmd
 
 from .calcPorosity import *
 
-def saveMovie(vf, numMol, runNum, timesteps):
-    cmd.set("ray_trace_frames", 0)
-    cmd.set("movie_fps", 10)
-    cmd.refresh()
-    os.makedirs("./frames", exist_ok = True)
-    cmd.mpng("./frames/frame_")
-    
-    import time
-    time.sleep(2)
-    return
-    
-def framesToMp4(output, framesDir, fps = 10):
-    inputPattern = os.path.join(framesDir, "frame_%04d.png")
-    result = subprocess.run(["ffmpeg", "-framerate", str(fps), "-i", "./frames/frame_%04d.png",
-                            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", output],
-                            capture_output = True, text = True)
-    print(result.stdout)
-    print(result.stderr)
-    return
-
 def angleToColour(angle, minAngle, maxAngle):
     """returns normalised values for a spectrum of blue to red"""
     norm = (angle - minAngle) / (maxAngle - minAngle)
@@ -45,6 +25,7 @@ def coordToColour(coordNum, minCoord = 0, maxCoord = 2):
     return r, g, b
 
 def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particles, unfoldedMols, angles, bondsPerAtom, prob, suffix):
+    """visualises trajectories over time according to unfolding degree of molecule."""
     pymol.finish_launching()
     # runNum = 10
     parRadius = 2 ** (1/6) * 0.4
@@ -96,7 +77,7 @@ def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particle
     return
 
 def loadCoordVis(barrier, refoldBarrier, runNum, vf, numMol, particles, timesteps, parCoordination):
-
+    """visualises trajectories in pymol and colours according to extent of molecule coordination."""
     pymol.finish_launching()
     
     parRadius = 2 ** (1/6) * 0.4

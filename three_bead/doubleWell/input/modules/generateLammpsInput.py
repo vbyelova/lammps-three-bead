@@ -5,6 +5,7 @@ from numpy import random
 from random import randint
 
 def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom):
+    """file to set variables and write out lammps input file for gelation and network growth simulation."""
     Nsteps = 700000 
     equilTime = 120000
     r_cutoff = 1.112462048
@@ -152,7 +153,8 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
 
     print(f"file written to ../runs/{conditions}/{filename}")
 
-def shearingInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom):
+def stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom):
+    """writes lammps input file for step strain simulations, runs based on restart file. """
     Nsteps = 700000 
     r_cutoff = 1.112462048
     seed = randint(100000, 999999)

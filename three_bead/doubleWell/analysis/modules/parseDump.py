@@ -109,25 +109,6 @@ def parseBondInfo(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPe
     return bondInfo
 
 
-
-def checkClumping(unfoldBarriers, refoldBarrier, numRuns, Vf, numMol):
-    """produces a histogram of the x coordinates of a simulation's final frame."""
-    conditions = f"unfold{unfoldBarriers[0]}_refold{refoldBarrier}_Vf{Vf}_mol{numMol}"
-    for n in range(0, numRuns):
-        filename = f"Run{n}_{conditions}"
-        with open(f"../runs/{conditions}/{filename}/analysis/dillParticles.pkl", "rb") as f:
-            particles = pickle.load(f)
-        xcoords = []
-        for p in particles:
-            xcoords.append(p.properties[-1, 1])
-
-        hist, bins = np.histogram(xcoords, bins = 150)
-        plt.hist(xcoords, bins, color = "palevioletred")
-        plt.xlabel("x coordinate of particles")
-        plt.ylabel("number of particles")
-        plt.legend([f"unfoldBarrier = {unfoldBarriers[0]} kT\nnumMol = {numMol}\nnumber of bins = {len(bins)-1}"])
-        plt.show()
-
 def totalBonds(filename):
     """counts total number of bonds in each frame of the simulation and saves to a list."""
     nBonds = []
@@ -151,13 +132,13 @@ def boundaryCheck(val, boxLength):
         return 0
 
 def wrapping(val, boxLength):
+    """wraps a value around the periodic boundaries."""
     while val > 0.5 * boxLength or val < -0.5 * boxLength:
         if val > 0.5 * boxLength:
             val -= boxLength
         elif val < - 0.5 * boxLength:
             val += boxLength
     return val
-
 
 def parseForPercolation(particles, filename, nBonds, boxLength, timesteps):
     """finds intermolecular bonds and tracks them as well as if they are across a boundary."""
@@ -269,33 +250,6 @@ def parseBondsForVis(filename, nBonds, timesteps):
     return bondedAtoms
 
 
-def checkBondLength(barrier, refoldBarrier, runNum, vf, numMol, nBonds, boxLength, bondsPerAtom, prob, suffix):
-    """checks if a bond length is unrealistically long, if so then this means that wrapping is not working"""
-    bondCounter = 0
-    frame = 0
-    if bondsPerAtom == 2:
-        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
-    else:
-        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
-        if prob < 1:
-            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
-    filename = f"threeBead_Run{runNum}_{conditions}"
-
-    with open(f"../runs/{conditions}/{filename}/output/bondinfo.dat", "r") as f:
-        for line in f:
-            if re.search(r"^[1-9]*\s+\d+", line):
-                bondID = line.rsplit()[0]
-                bondLen = float(line.rsplit()[7])
-                if bondLen > 0.5 * boxLength:
-                    print(f"frame {frame}:bond length is too large at {bondLen} for bond {bondID}")
-                bondCounter += 1
-
-                if bondCounter == nBonds[frame]:
-                    bondCounter = 0
-                    frame += 1
-                    print(f"moving to frame  {frame}")
-        
-    return print("bond length check completed.")
 
 def coordination(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix):
     """a function that finds the coordination of the atoms belonging to a three-bead molecule.
@@ -338,6 +292,7 @@ def coordination(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob,
     return moleculeCoordination, atomCoordination, centralAtomCoordination
 
 def plotCentralCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes):
+    """plots the average coordination number of the central bead of the molecule over time for every energetic barrier."""
     fig, ax = plt.subplots()
     colours = (["black", "dimgrey", "grey", "darkgrey", "silver"])
     allCentralCoordination = defaultdict(list)
@@ -446,108 +401,6 @@ def plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLe
 
     print("plotted average molecule coordination..")
     return avCoordination, avCoordinationErr
-
-
-def plotTogether(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob):
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avNewUnfoldedMol.pkl", "rb") as f:
-        avNewUnfoldedMol, avNewUnfoldedMolErr = pickle.load(f)
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPercolation.pkl", "rb") as f:
-        avPercolation, avPercolationErr = pickle.load(f)
-    # with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPressure.pkl", "rb") as f:
-    #     avPressure, avPressureErr = pickle.load(f)
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/unfoldedOverTime.pkl", "rb") as f:
-        avUnfoldOverTime, avUnfoldOverTimeErr = pickle.load(f)
-    
-    fig, (ax1, ax2, ax3) = plt.subplots(3, sharex = True, figsize = (15, 15))
-    fig.subplots_adjust(wspace = 0, hspace = 0)
-    for barrier in unfoldBarriers:
-        if bondsPerAtom == 2:
-            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
-        else:
-            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}"
-            if prob < 1:
-                conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}"
-        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
-            timesteps = pickle.load(f)
-        ax1.errorbar(timesteps, avUnfoldOverTime[barrier], yerr = avUnfoldOverTimeErr[barrier],
-                     label = f"barrier = {barrier}kT")
-        ax2.errorbar(timesteps, avNewUnfoldedMol[barrier], yerr = avNewUnfoldedMolErr[barrier],
-                label = f"unfolding barrier = {barrier}kT")
-        ax3.errorbar(timesteps, avPercolation[barrier], yerr = avPercolationErr[barrier],
-                    label = f"barrier = {barrier}kT")
-        # ax4.errorbar(timesteps, avPressure[barrier], yerr = avPressureErr[barrier],
-        #             label = f"barrier = {barrier}kT")
-        
-    ax1.set_ylabel("number of unfolded molecules")
-    ax2.set_ylabel("new unfolded molecules")
-    ax3.set_ylabel("percolation dimension")
-    ax1.legend()
-    ax2.legend()
-    ax3.legend()
-#    ax4.set_ylabel("average pressure")
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/sharedaxis_vf{vf}.jpg")
-    ax1.semilogx()
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/sharedaxis_vf{vf}_semilog.jpg")
-    plt.close()
-
-def plotTogetherShifted(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob):
-    colors = ["maroon", "firebrick", "indianred", "lightcoral", "lightpink"]
-
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avNewUnfoldedMol.pkl", "rb") as f:
-        avNewUnfoldedMol, avNewUnfoldedMolErr = pickle.load(f)
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPercolation.pkl", "rb") as f:
-        avPercolation, avPercolationErr = pickle.load(f)
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/avPressure.pkl", "rb") as f:
-        avPressure, avPressureErr = pickle.load(f)
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/data/unfoldedOverTime.pkl", "rb") as f:
-        avUnfoldOverTime, avUnfoldOverTimeErr = pickle.load(f)
-    fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, sharex = True, figsize = (15, 15))
-    fig.subplots_adjust(wspace = 0, hspace = 0)
-    for barrier in unfoldBarriers:
-        if bondsPerAtom == 2:
-            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
-        else:
-            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}"
-            if prob < 1:
-                conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}"
-        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
-            timesteps = pickle.load(f)
-            timesteps = np.array(timesteps)
-        percIndex = []
-        for runNum in range(numRuns):
-            filename = f"Run{runNum}_{conditions}"
-            with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "rb") as f:
-                percDims = pickle.load(f)
-                if 3 in percDims:
-                    percIndex.append(percDims.index(3))
-                else:
-                    print(f"no percolation in {conditions} run {runNum}")
-                    continue
-        avPercIndex = math.ceil(np.mean(percIndex))
-        percTimestep = timesteps[avPercIndex]
-        ax1.errorbar(timesteps - percTimestep, avUnfoldOverTime[barrier], yerr = avUnfoldOverTimeErr[barrier],
-                     label = f"barrier = {barrier}kT", color = colors[barrier - 1])
-        ax2.errorbar(timesteps - percTimestep, avNewUnfoldedMol[barrier], yerr = avNewUnfoldedMolErr[barrier],
-                label = f"unfolding barrier = {barrier}kT", color = colors[barrier - 1])
-        ax3.errorbar(timesteps - percTimestep, avPercolation[barrier], yerr = avPercolationErr[barrier],
-                    label = f"barrier = {barrier}kT", color = colors[barrier - 1])
-        ax4.errorbar(timesteps, avPressure[barrier], yerr = avPressureErr[barrier],
-                    label = f"barrier = {barrier}kT", color = colors[barrier - 1])
-        
-    ax1.set_ylabel("number of unfolded molecules")
-    ax2.set_ylabel("new unfolded molecules")
-    ax3.set_ylabel("percolation dimension")
-    ax1.legend()
-    ax2.legend()
-    ax3.legend()
-    ax4.legend()
-    ax4.set_ylabel("average pressure")
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/shifted_sharedaxis_vf{vf}.jpg")
-    ax1.semilogx()
-    ax1.set_xlabel("timesteps shifted")
-    
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/shifted_sharedaxis_vf{vf}_semilog.jpg")
-    plt.close()
 
 def plotTotalInterMol(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes):
     """plots scatter graph of average intermolecular bond count over simulation for each

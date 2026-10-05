@@ -1,3 +1,5 @@
+# code to use the diffusion of a single molecule to convert simulation timescale.
+
 import numpy as np
 import pickle
 import re

@@ -5,6 +5,7 @@ import subprocess
 import os
 
 def process_single_run(args):
+    """function used to process as many percolation calculations as possible. Calls on a C++ function."""
     barrier, suffix, refoldBarrier, vf, numMol, boxLength, bondsPerAtom, prob, runNum = args
     
     if bondsPerAtom == 2:

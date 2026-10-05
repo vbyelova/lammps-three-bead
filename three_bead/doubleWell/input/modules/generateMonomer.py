@@ -43,12 +43,6 @@ def equilateral(bondLen, p1, p2, p3):
 
     return
 
-def dimer(bondLen, p1, p2):
-    p1.x = p2.x + bondLen
-    p1.y = p2.y + bondLen
-    p1.z = p2.z + bondLen
-
-    return
 
 def writeFile(filename, particles, numMol, boxLength):
 
@@ -103,6 +97,7 @@ def writeFile(filename, particles, numMol, boxLength):
 
 
 def generateMonomer(filename, numMol, boxLength):
+    """makes one lonely molecule"""
     particles = [Particle() for _ in range(numMol * 3)]
     for p in particles:
         p.x = random.uniform(- mod * 0.5 * boxLength, mod * 0.5 * boxLength)

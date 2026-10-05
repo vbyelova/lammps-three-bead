@@ -1,3 +1,5 @@
+# all functions that require processing of the protein angles are here.
+
 import numpy as np
 import re
 import matplotlib.pyplot as plt
@@ -8,6 +10,8 @@ from itertools import cycle
 from collections import defaultdict
 from .parseDump import *
 from scipy.optimize import curve_fit
+import pickle
+import pandas as pd
 
 def calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix):
     """saves angles of three bead molecules in each simulation frame."""
@@ -38,9 +42,8 @@ def calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, s
     return angles
 
 def unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles, bondsPerAtom, prob, suffix):
-    """makes a list of molecules that are unfolded (have an angle of 120-180)"""
-    # let's say a particle is unfolded if it's around 120-180 degrees
-    # based on our bimodal distribution
+    """makes a list of molecules that are unfolded (have an angle of 120-180). Calculates the unfolded angle
+        based on the bimodal distribution"""
     if bondsPerAtom == 2:
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
     else:
@@ -55,8 +58,6 @@ def unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles, bondsP
     unfoldedMols = defaultdict(list)
     for frame in range(len(angles)):
         for molID, angle in enumerate(angles[frame]):
-            # if angle >= 120:
-            #    unfoldedMols[frame].append(molID)
              if angle > maximum:
                  unfoldedMols[frame].append(molID)
 
@@ -98,6 +99,7 @@ def unfoldedOverTime(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLeng
     return avUnfold, avUnfoldErr
 
 def plotUnfoldedOverTime(unfoldBarrier, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
+    """produces a plot of the percentage of molecules in the systems that have unfolded with time. """
     percAt = []
     perc = []
     noperc = []
@@ -157,70 +159,9 @@ def plotUnfoldedOverTime(unfoldBarrier, refoldBarrier, numRuns, vf, numMol, boxL
     print("plotted graphs of total unfolded molecules over time..")
     return 
 
-def collapseUnfoldedOverTime(unfoldBarrier, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
-    percAt = []
-    perc = []
-    noperc = []
-    percTimestep = []
-    finalUnfolded = []
-
-    colours = ["maroon", "firebrick", "indianred", "lightcoral", "lightpink"]
-
-    fig, ax = plt.subplots()
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/avPercolation.pkl", "rb") as f:
-        avPercolation, avPercolationErr = pickle.load(f)
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/unfoldedOverTime.pkl", "rb") as f:
-        avUnfold, avUnfoldErr = pickle.load(f)
-
-
-    # ax.set_prop_cycle(color = ["maroon", "firebrick", "indianred", "lightcoral", "lightpink"])
-
-    for i, (barrier, suffix) in enumerate(zip(unfoldBarrier, suffixes)):
-        if bondsPerAtom == 2:
-            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
-        else:
-            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
-            if prob < 1:
-                conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
-        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
-            timesteps = pickle.load(f)
-        key = (barrier, suffix)
-        if suffix != "":
-            percAt.append(None)
-            noperc.append((key))
-        if suffix == "":
-            perc.append(key)
-            percAt.append(np.where(avPercolation[barrier] == 3)[0][0])
-            percTimestep.append(timesteps[percAt[i]])
-            ax.scatter(timesteps[percAt[i]]  - percTimestep[i], avUnfold[key][percAt[i]], color = "teal", marker = "*")
-            print(timesteps[percAt[i]], percTimestep[i])
-            
-            finalUnfolded.append((avUnfold[key][-1]))
-
-            print(f"barrier {barrier}, num unfolded at perc / num unfolded post-relax : {avUnfold[key][percAt[i]] / avUnfold[key][-1]}")
-            print(f"barrier {barrier}, num unfolded mol at perc = {avUnfold[key][percAt[i]]}")
-    print(finalUnfolded)
-    avFinalUnfold = (np.array(finalUnfolded)).mean()
-    print(avFinalUnfold)
-    ax.scatter(unfoldBarrier, finalUnfolded)
-    # for i, barrier in enumerate(sorted(set(unfoldBarrier))):        
-    #     ax.errorbar([t - timesteps[percAt[i]] for t in timesteps], [val + avFinalUnfold * np.log(barrier) for val in avUnfold[perc[i]]], yerr = avUnfoldErr[perc[i]],
-    #                 label = f"barrier = {barrier}kT", color = colours[i])
-    #     # ax.errorbar(timesteps - percTimestep[i], avUnfold[noperc[i]], yerr = avUnfoldErr[noperc[i]],
-        #             color = colours[i], linestyle = "dashdot")
-    ax.set_xlabel("simulation frame")
-    ax.set_ylabel("log(number of unfolded molecules)")
-    ax.set_title("cumulative total of unfolded mol")
-    ax.legend()
-    #ax.semilogx()
-    #ax.semilogy()
-    plt.show()
-
-    print("plotted graphs of total unfolded molecules over time..")
-    return 
 
 def bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix):
-    """plots a histogram of the final angles of the molecules in the system."""
+    """plots a histogram of the molecule angles in the system."""
     if bondsPerAtom == 2:
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
     else:
@@ -231,7 +172,6 @@ def bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob,
     angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix)
     finalFrameAngles = angles[int(len(angles)-1)]
     hist, bins = np.histogram(finalFrameAngles, bins = np.linspace(0,200, 31))
-    #logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
     plt.hist(finalFrameAngles, bins = bins, color = "pink")
     plt.legend([f"vf = {vf}\nunfolding barrier  = {barrier} kT\n num. mol. = {numMol}"])
     plt.xlabel("molecule angle \u03B8")
@@ -242,53 +182,187 @@ def bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob,
     print("plotted histogram of angle distribution in system..")
     return hist, bins, finalFrameAngles
 
-def plotAvBimodalAngle(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
-    allHistograms = defaultdict(list)
-    histogramsMean = {}
-    histogramsErr = {}
-    fig, axs = plt.subplots(2, 3, sharex = True, sharey = True, figsize = (15, 8))
-    labels = [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2)]
+
+def densityUnfoldedCorrelation(barrier, refoldBarrier, runNum , vf, numMol, boxLength, bondsPerAtom, prob, suffix):
+    """correlation function between local density and degree of unfolding """
+    voxelSize = 0.07 * boxLength
+    voxelUnfoldedCount = defaultdict(int)
+    voxelParticleCount = defaultdict(int)
+    moleculeAngles = defaultdict(list)
+    if bondsPerAtom == 2:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+    else:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+        if prob < 1:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
+    filename = f"Run{runNum}_{conditions}"
+    with open(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl", "rb") as f:
+        particles = pickle.load(f)
+    with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+        timesteps = pickle.load(f)
+    # first find local density
+    # split box into voxels
+    bins = np.arange(-0.5 * boxLength, 0.5 * boxLength, voxelSize) 
     
-    #colours = (["maroon", "firebrick", "indianred", "lightcoral", "lightpink"])
-    colours = (["black", "dimgrey", "grey", "darkgrey", "silver"])
-    plt.ylabel("count of molecules")
-    plt.xlabel("molecule angle")
-    for i, (barrier, suffix) in enumerate(zip(unfoldBarriers, suffixes)):
-        ax = axs[labels[i]]
+    gx, gy, gz = np.meshgrid(bins, bins, bins, indexing = 'ij')
+    coords = np.column_stack([gx.ravel(), gy.ravel(), gz.ravel()])
+
+    
+    angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix)
+    frame = max(angles.keys())
+
+    # count how many particles per voxel (discrete)
+    for pNum, p in enumerate(particles):
+        x = p.properties[frame, 1]
+        y = p.properties[frame, 2]
+        z = p.properties[frame, 3]
+
+        xVox = np.digitize(x, bins) - 1   #digitize returns 1-based, so -1
+        yVox = np.digitize(y, bins) - 1
+        zVox = np.digitize(z, bins) - 1
+
+        voxelIndex = ((xVox, yVox, zVox))
+        voxelParticleCount[voxelIndex] += 1
+    # next let's find the degree of unfolding
+
+        # check for the central particle
+        if pNum % 3 == 1:
+            molNum = pNum // 3
+            # for each molecule in the box, get the angle of unfolding
+            centralAngle = angles[frame][molNum]
+            if centralAngle >= 120:
+                voxelUnfoldedCount[voxelIndex] += 1
+            moleculeAngles[voxelIndex].append(centralAngle)
+
+    allCounts = []
+    allMeanAngles = []
+    allCountsIncEmpty = []
+    allMeanAnglesIncEmpty = []
+    voxelData = {}
+
+    allVoxelIDs = [(x, y, z) for x in range(len(bins)) for y in range(len(bins)) for z in range(len(bins))]
+    for voxelID in allVoxelIDs:
+        if voxelID in moleculeAngles and len(moleculeAngles[voxelID]) > 0:
+            localMeanAngle = np.mean(moleculeAngles[voxelID])
+
+            allCounts.append(voxelParticleCount[voxelID])
+            allMeanAngles.append(localMeanAngle)
+            allCountsIncEmpty.append(voxelParticleCount[voxelID])
+            allMeanAnglesIncEmpty.append(localMeanAngle)
+            voxelData[voxelID]= { "meanAngle": localMeanAngle,
+                                 "totalPar": voxelParticleCount[voxelID],
+                                 "foldedPar": voxelParticleCount[voxelID] - voxelUnfoldedCount[voxelID],
+                                 "unfoldedPar": voxelUnfoldedCount[voxelID]}
+        
+        else:
+            allCountsIncEmpty.append(0)
+            allMeanAnglesIncEmpty.append(0)
+
+    meanCount = np.mean(allCounts)
+    meanAngle = np.mean(allMeanAngles)
+
+    corrFunc = []
+    for voxelID, data in voxelData.items():
+        corr = ((data["totalPar"] - meanCount) / numMol) * (data["meanAngle"] - meanAngle)
+        corrFunc.append(corr)
+
+    #print(allCounts, allMeanAngles)
+    plt.scatter(allMeanAngles, allCounts)
+    plt.ylabel("count of particles in voxel")
+    plt.xlabel("mean molecule angle")
+    meanCorr = np.mean(corrFunc)
+    print(meanCorr)
+    plt.savefig(f"../runs/{conditions}/{filename}/analysis/figs/densityUnfoldingCorr.jpg")
+    plt.clf()
+    #plt.show()
+    return allCounts, allMeanAngles, meanCorr, allCountsIncEmpty, allMeanAnglesIncEmpty
+
+
+def calcAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
+    """takes an average of all the correlation functions calculated"""
+    allCorrFuncs = defaultdict(list)
+    barrierAllCounts = defaultdict(list)
+    barrierAllMeanAngles = defaultdict(list)
+    avAllCounts = {}
+    avAllCountsErr = {}
+    avAllMeanAngles = {}
+    avAllMeanAnglesErr = {}
+    avCorrFuncs = {}
+    avCorrFuncsErr = {}
+
+    for barrier, suffix in zip(unfoldBarriers, suffixes):
         if bondsPerAtom == 2:
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
         else:
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
             if prob < 1:
                 conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
+        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+            timesteps = pickle.load(f)
+
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
-            with open(f"../runs/{conditions}/{filename}/analysis/angleDist.pkl", "rb") as f:
-                hist, bins, finalFrameAngles = pickle.load(f)
-            allHistograms[barrier].append(hist)
-        key = (barrier, suffix)
-        allHistogramsArray = np.array(allHistograms[barrier])
-        histogramsMean[key] = np.mean(allHistogramsArray, axis = 0)
-        histogramsErr[key] = np.std(allHistogramsArray, axis = 0)
+            with open(f"../runs/{conditions}/{filename}/analysis/densityUnfoldedCorr.pkl", "rb") as f:
+                allCounts, allMeanAngles, meanCorr, allCountsIncEmpty, allMeanAnglesIncEmpty = pickle.load(f)
+                print(len(allCountsIncEmpty))
+            barrierAllCounts[barrier].append(allCountsIncEmpty)
+            barrierAllMeanAngles[barrier].append(allMeanAnglesIncEmpty)
+            allCorrFuncs[barrier].append(meanCorr)
         
-        if suffix != "":
-            simtype = f"\nno intermol."
+        avCorrFuncsArray = np.array(allCorrFuncs[barrier])
+        avCorrFuncs[barrier] = np.mean(avCorrFuncsArray, axis = 0)
+        avCorrFuncsErr[barrier] = np.std(avCorrFuncsArray, axis = 0)
+    
+        avAllCountsArray = np.array(barrierAllCounts[barrier])
+        avAllCounts[barrier] = np.mean(avAllCountsArray, axis = 0)
+        avAllCountsErr[barrier] = np.std(avAllCountsArray, axis = 0)
+
+        avAllMeanAnglesArray = np.array(barrierAllMeanAngles[barrier])
+        avAllMeanAngles[barrier] = np.mean(barrierAllMeanAngles[barrier], axis = 0)
+        avAllMeanAnglesErr[barrier] = np.std(barrierAllMeanAngles[barrier], axis = 0)
+
+    return avAllCounts, avAllCountsErr, avAllMeanAngles, avAllMeanAnglesErr, avCorrFuncs, avCorrFuncsErr
+
+def plotAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
+    """plots heat maps of local densities and local average degree of unfolding."""
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/densityUnfoldedCorr.pkl", "rb") as f:
+        avAllCounts, avAllCountsErr, avAllMeanAngles, avAllMeanAnglesErr, avCorrFuncs, avCorrFuncsErr = pickle.load(f)
+
+    axes = [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2)]
+    fig, ax = plt.subplots(2, 3, sharex = True, sharey = True)
+    for barrier in unfoldBarriers:
+        if bondsPerAtom == 2:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}"
         else:
-            simtype = ""
-
-        bin_centers = (bins[:-1] + bins[1:]) / 2
-        ax.bar(bin_centers, histogramsMean[key], width=np.diff(bins),
-            yerr=histogramsErr[key], color = colours[i],
-            label=f"E_b = {barrier}kT {simtype}")
-        ax.legend()
-
-  
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}"
+            if prob < 1:
+                conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}"
+        key = axes[barrier - 1]
+        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+            timesteps = pickle.load(f)
+        for runNum in range(numRuns):
+            filename = f"Run{runNum}_{conditions}"
+            with open(f"../runs/{conditions}/{filename}/analysis/densityUnfoldedCorr.pkl", "rb") as f:
+                allCounts, allMeanAngles, meanCorr, allCountsIncEmpty, allMeanAnglesIncEmpty = pickle.load(f)
+            filtered = [(v, n) for v, n in zip(allCountsIncEmpty, allMeanAnglesIncEmpty)
+                        if not (v == 0 and n == 0)]
+            filteredCounts, filteredAngles = zip(*filtered)
+        ax[key].hist2d(filteredAngles, filteredCounts, bins = 50, norm = mcolors.PowerNorm(0.5), cmap = plt.cm.summer)
+        ax[key].set_title(f"E_U = {barrier}kT")
+    fig.supxlabel(f"molecule angle (\u03B8)")
+    fig.supylabel("number of particles in voxel")
+    
     plt.tight_layout()
-
-    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/avBimodalAngle.jpg")
+    plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/avDensityUnfoldedCorr.jpg")
+    plt.show()
+    plt.close()
     return
 
+
 def plotBimodalAndDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
+    """plots the average distribution of molecule angles in the system on the top and the heat map distribution on the bottom.
+        The heat maps depict average degree of unfolding in a voxel against density of a voxel, essentially describing how
+        low density and high density regions look."""
     allHistograms = defaultdict(list)
     histogramsMean = {}
     histogramsErr = {}
@@ -457,11 +531,6 @@ def anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLengt
         fancybox=True, shadow=True, ncol=2)
     plt.tight_layout()
     plt.savefig(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/barrierAnglePop_vf{vf}.jpg")
-    # with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/barrierAnglePop.txt") as f:
-    #     f.write(f"# number of folded or unfolded molecules at end of simulation")
-    #     f.write(f"E_U\tInteracting?\tfolded\tfolded err\tunfolded\tunfolded err\n")
-    #     for key in perc:
-    #         f.write(f"{key[0]}\tyes\t{foldedMean[key]}")
     print("plotted folded vs unfolded population by simulation end..")
     return
 
@@ -521,70 +590,9 @@ def avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLeng
     return avNewUnfoldedMol, avNewUnfoldedMolErr
 
 
-def plotFolded(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
-
-    def make_func(barrier, refoldBarrier):
-        a = np.exp(- barrier)
-        b = np.exp(- barrier) + np.exp(- refoldBarrier)
-
-        def func(t, gamma):
-            t = np.asarray(t)
-            return (1 / b) * np.exp(- gamma * b * t)
-            #return (b - a)/b * (1 - np.exp(- gamma * b * t))
-        return func
-
-    percAt = []
-    perc = []
-    noperc = []
-
-    colours = (["black", "dimgrey", "grey", "darkgrey", "silver"])
-
-    fig, ax = plt.subplots()
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/avPercolation.pkl", "rb") as f:
-        avPercolation, avPercolationErr = pickle.load(f)
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/unfoldedOverTime.pkl", "rb") as f:
-        avUnfold, avUnfoldErr = pickle.load(f)
-
-        
-    for i, (barrier, suffix) in enumerate(zip(unfoldBarriers, suffixes)):
-        if bondsPerAtom == 2:
-            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
-        else:
-            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
-            if prob < 1:
-                conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
-        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
-            timesteps = pickle.load(f) 
-        key = (barrier, suffix)
-        if suffix != "":
-            percAt.append(None)
-            noperc.append((key))
-        if suffix == "":
-            perc.append(key)
-            percAt.append(np.where(avPercolation[barrier] == 3)[0][0])
-
-            # ax.scatter(timesteps[percAt[i]], avUnfold[key][percAt[i]] / numMol * 100, color = "deeppink", marker = "x", zorder = 10)
-            # print(f"barrier = {barrier}kT, percolates at {timesteps[percAt[i]]}")
-
-    
-    for i, barrier in enumerate(sorted(set(unfoldBarriers))):
-        func = make_func(barrier, refoldBarrier)
-        ax.errorbar(timesteps, 1 - (avUnfold[perc[i]] / numMol ), yerr = avUnfoldErr[perc[i]] / numMol ,
-                    label = f"E_U = {barrier}kT", color = colours[i])
-        # ax.errorbar(timesteps, 100 - (avUnfold[noperc[i]] / numMol * 100), yerr = avUnfoldErr[noperc[i]] / numMol * 100,
-        #             color = colours[i], linestyle = "dashdot")
-
-        print(avUnfold[key][5:], numMol)
-        popt, pcov  = curve_fit(func, timesteps, 1 - avUnfold[perc[i]] / numMol )
-        ax.plot(timesteps, func(timesteps, *popt), color = colours[i], linestyle = "--", label = "fit") 
-    ax.semilogy()
-    ax.semilogx()
-    plt.show()
-
-    return
-
-
 def plotCrosslinkPercentAtPercAndSimEnd(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes):
+    """plots the percentage of possible crosslinks made at percolation and at the end of the simulation. Also plots
+        percentage of molecules in the system that have unfolded at percolation and at the end of the simulation."""
     percAt = []
     colours = (["black", "dimgrey", "grey", "darkgrey", "silver"])
     allnBonds = defaultdict(list)

@@ -1,3 +1,5 @@
+# script that is used dynamically to analyse output scripts and produce plots.
+
 import numpy as np
 import pickle
 import re
@@ -11,7 +13,6 @@ from modules.calcAngles import *
 from modules.calcFracDim import * 
 from modules.calcPercolation import *
 from modules.calcStressTensor import *
-from modules.calcCorrelation import *
 from modules.threeBeadClasses import *
 from modules.parseRDF import *
 from modules.calcPorosity import *
@@ -170,7 +171,6 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
 
 
 #plotAvBimodalAngle(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
-#collapseUnfoldedOverTime(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
 # avAllCounts, avAllCountsErr, avAllMeanAngles, avAllMeanAnglesErr, avCorrFuncs, avCorrFuncsErr = calcAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier,
 #                                                                                                                            numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
 # with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/densityUnfoldedCorr.pkl", "wb") as f:
