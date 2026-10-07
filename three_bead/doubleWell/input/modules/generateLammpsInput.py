@@ -153,6 +153,15 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
 
     print(f"file written to ../runs/{conditions}/{filename}")
 
+def prestructure(conditions, filename, boxLength, prob, bondsPerAtom):
+    """writes lammps input file for simulations with variable equilibration conditions.
+        Requirements:
+                - equilibration LJ / square well variable 
+                - gelation LJ as truncated repulsive (represents lamp switch on)
+                - V_f as 7%
+                - inclusion of unfolding as that's very nice for dimer monomerization"""
+
+
 def stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom):
     """writes lammps input file for step strain simulations, runs based on restart file. """
     Nsteps = 700000 
