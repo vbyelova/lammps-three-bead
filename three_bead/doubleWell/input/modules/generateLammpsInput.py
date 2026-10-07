@@ -153,9 +153,17 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
 
     print(f"file written to ../runs/{conditions}/{filename}")
 
+def prestructure(conditions, filename, boxLength, prob, bondsPerAtom):
+    """writes lammps input file for simulations with variable equilibration conditions.
+        Requirements:
+                - equilibration LJ / square well variable 
+                - gelation LJ as truncated repulsive (represents lamp switch on)
+                - V_f as 7%
+                - inclusion of unfolding as that's very nice for dimer monomerization"""
+
 def stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom):
     """writes lammps input file for step strain simulations, runs based on restart file. """
-    Nsteps = 700000 
+    Nsteps =  40000
     r_cutoff = 1.112462048
     seed = randint(100000, 999999)
     comm = 10
@@ -166,10 +174,10 @@ def stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom)
     print("writing input file..")
 
     # actually write the lammps input file now
-    with open(f"../runs/{conditions}/{filename}/input/shearing_in.lammps", "w") as f:
+    with open(f"../runs/{conditions}/{filename}/input/stepStrain_in.lammps", "w") as f:
         # set some simulation variables
         f.write(f"# simulation variables\n\n")
-        f.write(f"variable Nsteps         equal {Nsteps}\n")
+        f.write(f"variable Nsteps         equal {Nsteps * 3}\n")
         f.write(f"variable Nwrite         equal 1000\n")
         f.write(f"variable seed           equal {seed}\n")
         f.write(f"variable boxLength      equal lx\n")
@@ -200,7 +208,7 @@ def stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom)
         f.write(f"run zero\n")
 
         f.write(f"reset_timestep 0\n")
-        f.write(f"dump 1 all custom 1000 ../output/mech_dump.lammpstrj"
+        f.write(f"dump 1 all custom 1000 ../output/stepStrain_dump.lammpstrj"
                 f" id x y z type mol\n")
         f.write(f"dump_modify 1 sort id\n")
         f.write(f"neighbor 0.5 bin\n")
@@ -209,4 +217,4 @@ def stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom)
 
         f.write(f"run 10000\n")
 
-    print("made shearing input file")
+    print("made step strain input file")

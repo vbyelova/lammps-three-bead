@@ -24,8 +24,12 @@ def coordToColour(coordNum, minCoord = 0, maxCoord = 2):
     b = 1- norm
     return r, g, b
 
-def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particles, unfoldedMols, angles, bondsPerAtom, prob, suffix):
+def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particles, unfoldedMols, angles, bondsPerAtom, prob, suffix, simType = "gelation"):
     """visualises trajectories over time according to unfolding degree of molecule."""
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     pymol.finish_launching()
     # runNum = 10
     parRadius = 2 ** (1/6) * 0.4
@@ -37,7 +41,7 @@ def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particle
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
         
     filename = f"Run{runNum}_{conditions}"
-    with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+    with open(f"../runs/{conditions}/{prefix}timesteps.pkl", "rb") as f:
         timesteps = pickle.load(f)
     #pores = calcPorosity(barrier, refoldBarrier, runNum, vf, numMol, boxLength)
     frames = len(timesteps)

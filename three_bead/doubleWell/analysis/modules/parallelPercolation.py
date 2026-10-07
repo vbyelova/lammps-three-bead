@@ -6,8 +6,11 @@ import os
 
 def process_single_run(args):
     """function used to process as many percolation calculations as possible. Calls on a C++ function."""
-    barrier, suffix, refoldBarrier, vf, numMol, boxLength, bondsPerAtom, prob, runNum = args
-    
+    barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType  = args
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     if bondsPerAtom == 2:
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
     else:
@@ -16,14 +19,14 @@ def process_single_run(args):
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
     
     filename = f"Run{runNum}_{conditions}"
-    output_path = f"../runs/{conditions}/{filename}/analysis/percDimsPerFrame.txt"
+    output_path = f"../runs/{conditions}/{filename}/{prefix}analysis/percDimsPerFrame.txt"
     
     if not os.path.exists(output_path):
         if suffix == "NOPERCOLATION":
             return
         
-        frameByFramePerc(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix)
+        frameByFramePerc(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType)
         
-        systemDataFile = f"../runs/{conditions}/{filename}/output/systemData.txt"
-        percInfoFile   = f"../runs/{conditions}/{filename}/analysis/percinfo.txt"
+        systemDataFile = f"../runs/{conditions}/{filename}/{prefix}output/systemData.txt"
+        percInfoFile   = f"../runs/{conditions}/{filename}/{prefix}analysis/percinfo.txt"
         subprocess.run(["./addingData/addingData", systemDataFile, percInfoFile, output_path])

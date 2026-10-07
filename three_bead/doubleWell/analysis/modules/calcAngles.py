@@ -13,7 +13,11 @@ from scipy.optimize import curve_fit
 import pickle
 import pandas as pd
 
-def calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix):
+def calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix, simType = "gelation"):
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     """saves angles of three bead molecules in each simulation frame."""
     if bondsPerAtom == 2:
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
@@ -22,13 +26,13 @@ def calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, s
         if prob < 1:
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
     filename = f"Run{runNum}_{conditions}"
-    systemData = parseSystemData(f"../runs/{conditions}/{filename}/output/systemData.txt")
+    systemData = parseSystemData(f"../runs/{conditions}/{filename}/{prefix}output/systemData.txt")
     boxLength, Npar, Nsteps, Nwrite, equilTime = systemData[0], systemData[1], systemData[2], systemData[3], systemData[4]
     
     angles = defaultdict(list)
     frame = 0
     counter = 0
-    with open(f"../runs/{conditions}/{filename}/output/moleculeangles.dat", "r") as f:
+    with open(f"../runs/{conditions}/{filename}/{prefix}output/moleculeangles.dat", "r") as f:
         print("opened file")
         for line in f.readlines():
             if re.search(r"\d+\s[\d.]+\s-?[\d.]+", line):
@@ -41,7 +45,7 @@ def calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, s
     print("parsed angles..")
     return angles
 
-def unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles, bondsPerAtom, prob, suffix):
+def unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles, bondsPerAtom, prob, suffix, simType = "gelation"):
     """makes a list of molecules that are unfolded (have an angle of 120-180). Calculates the unfolded angle
         based on the bimodal distribution"""
     if bondsPerAtom == 2:
@@ -64,15 +68,18 @@ def unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles, bondsP
     print("generated list of unfolded molecules..")
     return unfoldedMols
 
-def unfoldedOverTime(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
+def unfoldedOverTime(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
     """calculates number of molecules unfolded over course of simulation."""
     allUnfold = defaultdict(list)
     avUnfold = {}
     avUnfoldErr = {}
 
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/avPercolation.pkl", "rb") as f:
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avPercolation.pkl", "rb") as f:
         avPercolation, avPercolationErr = pickle.load(f)
-
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     for barrier, suffix in zip(unfoldBarriers, suffixes):
         key = (barrier, suffix)
         if bondsPerAtom == 2:
@@ -85,10 +92,10 @@ def unfoldedOverTime(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLeng
             timesteps = pickle.load(f)
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
-            with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
+            with open(f"../runs/{conditions}/{filename}/{prefix}analysis/nBonds.pkl", "rb") as f:
                 nBonds = pickle.load(f)
-            angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix)
-            unfoldedMols = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles, bondsPerAtom, prob, suffix)
+            angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix, simType = "gelation")
+            unfoldedMols = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles, bondsPerAtom, prob, suffix, simType = "gelation")
             totalMols = [len(unfoldedMols[frame]) for frame in range(len(timesteps))]
             allUnfold[key].append(totalMols)
 
@@ -98,19 +105,22 @@ def unfoldedOverTime(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLeng
     
     return avUnfold, avUnfoldErr
 
-def plotUnfoldedOverTime(unfoldBarrier, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
+def plotUnfoldedOverTime(unfoldBarrier, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
     """produces a plot of the percentage of molecules in the systems that have unfolded with time. """
     percAt = []
     perc = []
     noperc = []
-
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     #colours = ["maroon", "firebrick", "indianred", "lightcoral", "lightpink"]
     colours = (["black", "dimgrey", "grey", "darkgrey", "silver"])
 
     fig, ax = plt.subplots()
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/avPercolation.pkl", "rb") as f:
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avPercolation.pkl", "rb") as f:
         avPercolation, avPercolationErr = pickle.load(f)
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/unfoldedOverTime.pkl", "rb") as f:
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/unfoldedOverTime.pkl", "rb") as f:
         avUnfold, avUnfoldErr = pickle.load(f)
 
         
@@ -160,8 +170,12 @@ def plotUnfoldedOverTime(unfoldBarrier, refoldBarrier, numRuns, vf, numMol, boxL
     return 
 
 
-def bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix):
+def bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix, simType = "gelation"):
     """plots a histogram of the molecule angles in the system."""
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     if bondsPerAtom == 2:
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
     else:
@@ -169,7 +183,7 @@ def bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob,
         if prob < 1:
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
     filename = f"Run{runNum}_{conditions}"
-    angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix)
+    angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix, simType = "gelation")
     finalFrameAngles = angles[int(len(angles)-1)]
     hist, bins = np.histogram(finalFrameAngles, bins = np.linspace(0,200, 31))
     plt.hist(finalFrameAngles, bins = bins, color = "pink")
@@ -177,14 +191,18 @@ def bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob,
     plt.xlabel("molecule angle \u03B8")
     plt.ylabel("number of molecules")
     plt.title("Bimodal distribution of folded and unfolded molecules")
-    plt.savefig(f"../runs/{conditions}/{filename}/analysis/figs/bimodalAngleDist.png")
+    plt.savefig(f"../runs/{conditions}/{filename}/{prefix}analysis/figs/bimodalAngleDist.png")
     plt.close()
     print("plotted histogram of angle distribution in system..")
     return hist, bins, finalFrameAngles
 
 
-def densityUnfoldedCorrelation(barrier, refoldBarrier, runNum , vf, numMol, boxLength, bondsPerAtom, prob, suffix):
+def densityUnfoldedCorrelation(barrier, refoldBarrier, runNum , vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType = "gelation"):
     """correlation function between local density and degree of unfolding """
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     voxelSize = 0.07 * boxLength
     voxelUnfoldedCount = defaultdict(int)
     voxelParticleCount = defaultdict(int)
@@ -196,7 +214,7 @@ def densityUnfoldedCorrelation(barrier, refoldBarrier, runNum , vf, numMol, boxL
         if prob < 1:
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
     filename = f"Run{runNum}_{conditions}"
-    with open(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl", "rb") as f:
+    with open(f"../runs/{conditions}/{filename}/{prefix}analysis/particleTraj.pkl", "rb") as f:
         particles = pickle.load(f)
     with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
         timesteps = pickle.load(f)
@@ -208,7 +226,7 @@ def densityUnfoldedCorrelation(barrier, refoldBarrier, runNum , vf, numMol, boxL
     coords = np.column_stack([gx.ravel(), gy.ravel(), gz.ravel()])
 
     
-    angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix)
+    angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix, simType = "gelation")
     frame = max(angles.keys())
 
     # count how many particles per voxel (discrete)
@@ -272,13 +290,13 @@ def densityUnfoldedCorrelation(barrier, refoldBarrier, runNum , vf, numMol, boxL
     plt.xlabel("mean molecule angle")
     meanCorr = np.mean(corrFunc)
     print(meanCorr)
-    plt.savefig(f"../runs/{conditions}/{filename}/analysis/figs/densityUnfoldingCorr.jpg")
+    plt.savefig(f"../runs/{conditions}/{filename}/{prefix}analysis/figs/densityUnfoldingCorr.jpg")
     plt.clf()
     #plt.show()
     return allCounts, allMeanAngles, meanCorr, allCountsIncEmpty, allMeanAnglesIncEmpty
 
 
-def calcAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
+def calcAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
     """takes an average of all the correlation functions calculated"""
     allCorrFuncs = defaultdict(list)
     barrierAllCounts = defaultdict(list)
@@ -289,7 +307,10 @@ def calcAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol
     avAllMeanAnglesErr = {}
     avCorrFuncs = {}
     avCorrFuncsErr = {}
-
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     for barrier, suffix in zip(unfoldBarriers, suffixes):
         if bondsPerAtom == 2:
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
@@ -302,7 +323,7 @@ def calcAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol
 
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
-            with open(f"../runs/{conditions}/{filename}/analysis/densityUnfoldedCorr.pkl", "rb") as f:
+            with open(f"../runs/{conditions}/{filename}/{prefix}analysis/densityUnfoldedCorr.pkl", "rb") as f:
                 allCounts, allMeanAngles, meanCorr, allCountsIncEmpty, allMeanAnglesIncEmpty = pickle.load(f)
                 print(len(allCountsIncEmpty))
             barrierAllCounts[barrier].append(allCountsIncEmpty)
@@ -323,11 +344,14 @@ def calcAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol
 
     return avAllCounts, avAllCountsErr, avAllMeanAngles, avAllMeanAnglesErr, avCorrFuncs, avCorrFuncsErr
 
-def plotAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
+def plotAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
     """plots heat maps of local densities and local average degree of unfolding."""
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/densityUnfoldedCorr.pkl", "rb") as f:
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/densityUnfoldedCorr.pkl", "rb") as f:
         avAllCounts, avAllCountsErr, avAllMeanAngles, avAllMeanAnglesErr, avCorrFuncs, avCorrFuncsErr = pickle.load(f)
-
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     axes = [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2)]
     fig, ax = plt.subplots(2, 3, sharex = True, sharey = True)
     for barrier in unfoldBarriers:
@@ -342,7 +366,7 @@ def plotAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol
             timesteps = pickle.load(f)
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
-            with open(f"../runs/{conditions}/{filename}/analysis/densityUnfoldedCorr.pkl", "rb") as f:
+            with open(f"../runs/{conditions}/{filename}/{prefix}analysis/densityUnfoldedCorr.pkl", "rb") as f:
                 allCounts, allMeanAngles, meanCorr, allCountsIncEmpty, allMeanAnglesIncEmpty = pickle.load(f)
             filtered = [(v, n) for v, n in zip(allCountsIncEmpty, allMeanAnglesIncEmpty)
                         if not (v == 0 and n == 0)]
@@ -359,10 +383,14 @@ def plotAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol
     return
 
 
-def plotBimodalAndDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
+def plotBimodalAndDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
     """plots the average distribution of molecule angles in the system on the top and the heat map distribution on the bottom.
         The heat maps depict average degree of unfolding in a voxel against density of a voxel, essentially describing how
         low density and high density regions look."""
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""    
     allHistograms = defaultdict(list)
     histogramsMean = {}
     histogramsErr = {}
@@ -385,7 +413,7 @@ def plotBimodalAndDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf
                 conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
-            with open(f"../runs/{conditions}/{filename}/analysis/angleDist.pkl", "rb") as f:
+            with open(f"../runs/{conditions}/{filename}/{prefix}analysis/angleDist.pkl", "rb") as f:
                 hist, bins, finalFrameAngles = pickle.load(f)
             allHistograms[barrier].append(hist)
         key = (barrier, suffix)
@@ -427,7 +455,7 @@ def plotBimodalAndDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf
             timesteps = pickle.load(f)
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
-            with open(f"../runs/{conditions}/{filename}/analysis/densityUnfoldedCorr.pkl", "rb") as f:
+            with open(f"../runs/{conditions}/{filename}/{prefix}analysis/densityUnfoldedCorr.pkl", "rb") as f:
                 allCounts, allMeanAngles, meanCorr, allCountsIncEmpty, allMeanAnglesIncEmpty = pickle.load(f)
             filtered = [(v, n) for v, n in zip(allCountsIncEmpty, allMeanAnglesIncEmpty)
                         if not (v == 0 and n == 0)]
@@ -451,9 +479,13 @@ def plotBimodalAndDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf
 
 
 
-def anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
+def anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
     """plots a histogram of average distribution of folded vs unfolded molecules with
         energy barrier."""
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     totalFolded = defaultdict(list)
     totalUnfolded = defaultdict(list)
     foldedMean = {}
@@ -488,10 +520,10 @@ def anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLengt
 
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
-            with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
+            with open(f"../runs/{conditions}/{filename}/{prefix}analysis/nBonds.pkl", "rb") as f:
                 nBonds = pickle.load(f)
-            angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix)
-            unfoldedMol = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles, bondsPerAtom, prob, suffix)
+            angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix, simType = "gelation")
+            unfoldedMol = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles, bondsPerAtom, prob, suffix, simType = "gelation")
             print(f"barrier {barrier}, run {runNum}")
         
             numUnfolded = len(unfoldedMol[finalframe])
@@ -534,9 +566,13 @@ def anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLengt
     print("plotted folded vs unfolded population by simulation end..")
     return
 
-def avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
+def avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
     """plots a scatter graph of average unfolding events per timestep,
         compares against multiple unfolding barriers."""
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     totalNewUnfoldedMol = defaultdict(list)
     avNewUnfoldedMol = {}
     avNewUnfoldedMolErr = {}
@@ -553,13 +589,13 @@ def avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLeng
             timesteps = pickle.load(f)
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
-            nBonds = totalBonds(f"../runs/{conditions}/{filename}/output/nbonds.dat")
+            nBonds = totalBonds(f"../runs/{conditions}/{filename}/{prefix}output/nbonds.dat")
             #print(f"len nBonds {len(nBonds)}, run{runNum} barrier{barrier}")
             if len(nBonds) < 100: 
                 print(f"skipping run{runNum} barrier{barrier}")
                 continue
-            angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix)
-            unfoldedMols = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles, bondsPerAtom, prob, suffix)
+            angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix, simType = "gelation")
+            unfoldedMols = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles, bondsPerAtom, prob, suffix, simType = "gelation")
             
             newUnfoldedCount = [0]
             #print(nBonds)
@@ -590,7 +626,7 @@ def avUnfoldPerFrame(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLeng
     return avNewUnfoldedMol, avNewUnfoldedMolErr
 
 
-def plotCrosslinkPercentAtPercAndSimEnd(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes):
+def plotCrosslinkPercentAtPercAndSimEnd(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
     """plots the percentage of possible crosslinks made at percolation and at the end of the simulation. Also plots
         percentage of molecules in the system that have unfolded at percolation and at the end of the simulation."""
     percAt = []
@@ -598,7 +634,10 @@ def plotCrosslinkPercentAtPercAndSimEnd(unfoldBarriers, refoldBarrier, numRuns, 
     allnBonds = defaultdict(list)
     avnBonds = {}
     avnBondsErr = {}
-
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     fig, ax1 = plt.subplots()
     for i, (barrier, suffix) in enumerate(zip(unfoldBarriers, suffixes)):
         if bondsPerAtom == 2:
@@ -607,13 +646,13 @@ def plotCrosslinkPercentAtPercAndSimEnd(unfoldBarriers, refoldBarrier, numRuns, 
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
             if prob < 1:
                 conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
-        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/avPercolation.pkl", "rb") as f:
+        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avPercolation.pkl", "rb") as f:
             avPercolation, avPercolationErr = pickle.load(f)
-        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/unfoldedOverTime.pkl", "rb") as f:
+        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/unfoldedOverTime.pkl", "rb") as f:
             avUnfold, avUnfoldErr = pickle.load(f)
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
-            with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
+            with open(f"../runs/{conditions}/{filename}/{prefix}analysis/nBonds.pkl", "rb") as f:
                 nBonds = pickle.load(f)
             allnBonds[barrier].append(nBonds)
         avnBondsArray = np.array(allnBonds[barrier])

@@ -61,9 +61,13 @@ def boxCounting(filename, boxLength, timesteps, percDims, atPerc):
     print("voxels size and number of particles per voxel: ", totalUniqueVoxels)
     return np.array(totalUniqueVoxels)
         
-def avBoxCounting(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
+def avBoxCounting(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
     """averages the counts produced in boxCounting and plots them together. Takes the fractal dimension and
         correlation length from the average."""
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""        
     for i, (barrier, suffix) in enumerate(zip(unfoldBarriers, suffixes)):
         allUniqueCounts = []
         if bondsPerAtom == 2:
@@ -73,14 +77,14 @@ def avBoxCounting(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength,
             if prob < 1:
                 conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
 
-        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+        with open(f"../runs/{conditions}/{prefix}timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
-            with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "rb") as f:
+            with open(f"../runs/{conditions}/{filename}/{prefix}analysis/percDims.pkl", "rb") as f:
                 percDims = pickle.load(f)
 
-            totalUniqueVoxels = boxCounting(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl", boxLength, timesteps, percDims, True)
+            totalUniqueVoxels = boxCounting(f"../runs/{conditions}/{filename}/{prefix}analysis/particleTraj.pkl", boxLength, timesteps, percDims, True)
             allUniqueCounts.append([item[1] for item in totalUniqueVoxels])
             voxelSizes = [item[0] for item in totalUniqueVoxels]
 
@@ -109,8 +113,12 @@ def avBoxCounting(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength,
         plt.clf()
     return
 
-def calcFractalDimension(unfoldBarrier, refoldBarrier, runNum, vf, numMol, totalUniqueVoxels, boxLength, percDims, atPerc, bondsPerAtom, prob, suffix):
+def calcFractalDimension(unfoldBarrier, refoldBarrier, runNum, vf, numMol, totalUniqueVoxels, boxLength, percDims, atPerc, bondsPerAtom, prob, suffix, simType = "gelation"):
     """calculates the fractal dimension for a single run using a box counting algorithm"""
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""    
     if bondsPerAtom == 2:
         conditions = f"unfold{unfoldBarrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
     else:
@@ -118,7 +126,7 @@ def calcFractalDimension(unfoldBarrier, refoldBarrier, runNum, vf, numMol, total
         if prob < 1:
             conditions = f"unfold{unfoldBarrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
     filename = f"Run{runNum}_{conditions}"
-    with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+    with open(f"../runs/{conditions}/{prefix}timesteps.pkl", "rb") as f:
         timesteps = pickle.load(f)
     if atPerc == True:
         atPercString = "AtPercolation"
@@ -144,15 +152,18 @@ def calcFractalDimension(unfoldBarrier, refoldBarrier, runNum, vf, numMol, total
     plt.plot(xHat, yHat, "-", color = "purple")
     plt.xlim(math.floor(min(logInverseVoxelSizes)), int(max(logInverseVoxelSizes)))
     plt.tight_layout()
-    plt.savefig(f"../runs/{conditions}/{filename}/analysis/figs/boxCounting{atPercString}")
+    plt.savefig(f"../runs/{conditions}/{filename}/{prefix}analysis/figs/boxCounting{atPercString}")
     plt.close()
     return 2, np.abs(model.slopes[1]), breaks[1]
 
 
-def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, atPerc, bondsPerAtom, prob, suffixes):
+def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, atPerc, bondsPerAtom, prob, suffixes, simType = "gelation"):
     """finds the fractal dimension for each run for each unfolding barrier and also calculates the average
         correlation length. Can find this for either at percolation point or in final frame of sim."""
-
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     fractalDim = defaultdict(list)
     fractalDimError = defaultdict(list)
 
@@ -173,31 +184,31 @@ def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
             if prob < 1:
                 conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
-        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as t:
+        with open(f"../runs/{conditions}/{prefix}timesteps.pkl", "rb") as t:
             timesteps = pickle.load(t)
         validRuns = 0
         if atPerc == True:
             atPercString = "AtPerc"
         elif atPerc == False:
             atPercString = "SimEnd"
-        with open(f"../runs/{conditions}/data/corrLengths{atPercString}.txt", "w") as f:
+        with open(f"../runs/{conditions}/{prefix}data/corrLengths{atPercString}.txt", "w") as f:
             f.write(f"# correlation length\t# standard deviation\n")
 
             for runNum in range(numRuns):
                 filename = f"Run{runNum}_{conditions}"
-                percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix)
+                percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix, simType)
                 if atPerc == True and 3 not in percDims:
                     print(f"{conditions} run {runNum} did not percolate, skipping" )
-                    with open(f"../runs/{conditions}/analysisNotes.txt", "w") as s:
+                    with open(f"../runs/{conditions}/{prefix}analysisNotes.txt", "w") as s:
                         s.write(f"{conditions} run {runNum} did not percolate, skipped during fractal dim "
                                 f"analysis.\n Maximum percolation dimension = {max(percDims)}\n")
                         s.close()
                     continue
                 validRuns += 1
-                totalUniqueVoxels = boxCounting(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl",
+                totalUniqueVoxels = boxCounting(f"../runs/{conditions}/{filename}/{prefix}analysis/particleTraj.pkl",
                                                 boxLength, timesteps, percDims, atPerc)
                 dimsAndBreak = calcFractalDimension(barrier, refoldBarrier, runNum, vf, numMol, 
-                                                    totalUniqueVoxels, boxLength, percDims, atPerc, bondsPerAtom, prob, suffix)
+                                                    totalUniqueVoxels, boxLength, percDims, atPerc, bondsPerAtom, prob, suffix, simType)
                 if dimsAndBreak[0] == 2:
                     df = dimsAndBreak[1]
                     breakpoint = dimsAndBreak[2]
@@ -226,13 +237,17 @@ def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
 
     return finalFractalDims, finalFractalDimsError, avCorrLength, avCorrLengthErr
 
-def plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob):
+def plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
     """plots a scatter graph of what the average fractal dimension is with each unfolding barrier
         at percolation and at the end of the simulation, also plots correlation length."""
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/atPercFractalDims.pkl", "rb") as f:
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""    
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/atPercFractalDims.pkl", "rb") as f:
         atPercFinalFractalDims, atPercFinalFractalDimsError, atPercAvCorrLength, atPercAvCorrLengthErr =  pickle.load(f)
 
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/simEndFractalDims.pkl", "rb") as f:
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/simEndFractalDims.pkl", "rb") as f:
         simEndFinalFractalDims, simEndFinalFractalDimsError, simEndAvCorrLength, simEndAvCorrLengthErr =  pickle.load(f)  
     print("extracted fractal dims..")
     barWidth = 0.35
@@ -277,19 +292,24 @@ def plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, bo
     return (atPercFinalFractalDims, atPercFinalFractalDimsError, simEndFinalFractalDims, simEndFinalFractalDimsError,
             atPercAvCorrLength, atPercAvCorrLengthErr, simEndAvCorrLength, simEndAvCorrLengthErr)
 
-def plotTwoVfFractalDim(unfoldBarriers, refoldBarrier, numRuns, vfs, numMols, boxLengths, bondsPerAtom, prob):
+def plotTwoVfFractalDim(unfoldBarriers, refoldBarrier, numRuns, vfs, numMols, boxLengths, bondsPerAtom, prob, simType = "gelation"):
     """plots the volume fractions of two different system sizes at percolation and post-relaxation.
         Does the same for correlation length and also plots the system size on the same graph."""
+
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     colors = ["darkturquoise", "purple"]
     
     fig1, ax1 = plt.subplots()
     fig2, ax2 = plt.subplots()
     for i, (vf, numMol, boxLength) in enumerate(zip(vfs, numMols, boxLengths)):
         converted_bl = boxLength / (2 ** (1/6))
-        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/atPercFractalDims.pkl", "rb") as f:
+        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/atPercFractalDims.pkl", "rb") as f:
             atPercFinalFractalDims, atPercFinalFractalDimsError, atPercAvCorrLength, atPercAvCorrLengthErr =  pickle.load(f)
 
-        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/simEndFractalDims.pkl", "rb") as f:
+        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/simEndFractalDims.pkl", "rb") as f:
             simEndFinalFractalDims, simEndFinalFractalDimsError, simEndAvCorrLength, simEndAvCorrLengthErr =  pickle.load(f)  
         print("extracted fractal dims..")
         barWidth = 0.35

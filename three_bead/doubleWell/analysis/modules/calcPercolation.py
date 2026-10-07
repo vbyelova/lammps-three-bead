@@ -138,8 +138,12 @@ def testFrameByFrame():
         dimsPercolated.append(system.percolationDimension(V, E))
     return print(dimsPercolated)
 
-def getPercDims(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix):
+def getPercDims(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType = "gelation"):
     """retrieves percolation dimensions from text file."""
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     if bondsPerAtom == 2:
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
     else:
@@ -148,22 +152,26 @@ def getPercDims(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, 
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
     filename = f"Run{runNum}_{conditions}"
     percDims = []
-    with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+    with open(f"../runs/{conditions}/{prefix}timesteps.pkl", "rb") as f:
         timesteps = pickle.load(f)
-    with open(f"../runs/{conditions}/{filename}/analysis/percDimsPerFrame.txt", "r") as f:
+    with open(f"../runs/{conditions}/{filename}/{prefix}analysis/percDimsPerFrame.txt", "r") as f:
         for line in f:
             percDims.append(int(line))
     
     return percDims
 
-def calcAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffix):
+def calcAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
     """calculates the average percolation dimension per energetic barrier."""
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     allPercolation = defaultdict(list)
     avPercolation = {}
     avPercolationErr = {}
 
     fig, ax = plt.subplots()
-    for barrier in unfoldBarriers:
+    for barrier, suffix in zip(unfoldBarriers, suffixes):
         if bondsPerAtom == 2:
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
         else:
@@ -171,16 +179,16 @@ def calcAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLen
             if prob < 1:
                 conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
 
-        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+        with open(f"../runs/{conditions}/{prefix}timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
             
         
         frames = len(timesteps)
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
-            with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "rb") as f:
+            with open(f"../runs/{conditions}/{filename}/{prefix}analysis/percDims.pkl", "rb") as f:
                 percDims = pickle.load(f)
-            with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
+            with open(f"../runs/{conditions}/{filename}/{prefix}analysis/nBonds.pkl", "rb") as f:
                 nBonds = pickle.load(f)
             percDims = percDims[:frames]
             if 3 in percDims:
@@ -198,11 +206,14 @@ def calcAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLen
     return avPercolation, avPercolationErr
 
 
-def plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
+def plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType):
     """plots the average percolation dimension with time for different energetic barriers."""
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avPercolation.pkl", "rb") as f:
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/{prefix}data/avPercolation.pkl", "rb") as f:
         avPercolation, avPercolationErr = pickle.load(f)
-
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     
     fig, ax = plt.subplots()
     for barrier, suffix in zip(unfoldBarriers, suffixes):

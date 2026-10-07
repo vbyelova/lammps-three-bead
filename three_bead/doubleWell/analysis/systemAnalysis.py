@@ -19,13 +19,13 @@ from modules.calcPorosity import *
 from modules.parallelPercolation import *
 
 # let's get the system data first
-unfoldBarriers = [1, 2, 3, 4, 5]#[1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
-suffixes = ["", "", "", "", ""]#["", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ"]
+unfoldBarriers = [10]#[1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
+suffixes = [""]#["", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ"]
 refoldBarrier = 2
-numRuns = 10
+numRuns = 1
 vf = 0.07
-numMol = 31512
-boxLength = 100
+numMol = 851
+boxLength = 30
 bondsPerAtom = 2
 prob = 1
 
@@ -62,10 +62,6 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
             os.makedirs(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}")
         if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data"):
             os.makedirs(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data")
-            with open(f"../runs/{conditions}/analysisNotes.txt", "w") as f:
-                f.write(f"# any extra info e.g. runs skipped will be noted here.\n")
-                f.close()
-
 
         # check if particle trajectories have been parsed
         if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl"):
@@ -182,9 +178,9 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
 #plotTogether(unfoldBarriers, refoldBarrier, numRuns, numMol ,vf, boxLength)
 #anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
 #plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes)
-plotCrosslinkPercentAtPercAndSimEnd(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes)
+#plotCrosslinkPercentAtPercAndSimEnd(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes)
 #plotBimodalAndDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
-#plotUnfoldedOverTime(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
+plotUnfoldedOverTime(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
 #plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes)
 #plotTotalInterMol(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom)
 #plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)

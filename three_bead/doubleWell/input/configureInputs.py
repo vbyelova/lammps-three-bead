@@ -6,10 +6,8 @@ import os
 
 from modules.doubleWellCoeffs import *
 from modules.generateMonomer import *
-from modules.generateDimer import *
 from modules.generateThreeBead import *
 from modules.generateLammpsInput import *
-from modules.generateRDF import *
 
 #generate optimal values for quartic function
 
@@ -26,8 +24,13 @@ boxLength = 30
 prob = 1 # probability of unfolding
 bondsPerAtom = 2
 
-#generate molecule input file
+simType = "step strain"
 
+#generate molecule input file
+if simType == "step strain":
+    prefix = "stepStrain_"
+elif simType == "gelation":
+    prefix = ""
 for volfrac in vf:
     for barrier in barrierToUnfold:
         numPar = (boxLength**3 * volfrac) / ((1 * 2 **(1 / 6))**3 * (np.pi / 6))
@@ -52,13 +55,15 @@ for volfrac in vf:
             if not os.path.exists(f"../runs/{conditions}/{filename}/input"):
                 os.makedirs(f"../runs/{conditions}/{filename}/input")
                 generateThreeBead(f"../runs/{conditions}/{filename}/input/{filename}.in", numMol, boxLength)
-            if not os.path.exists(f"../runs/{conditions}/{filename}/output"):
-                os.makedirs(f"../runs/{conditions}/{filename}/output")
+            if not os.path.exists(f"../runs/{conditions}/{filename}/{prefix}output"):
+                os.makedirs(f"../runs/{conditions}/{filename}/{prefix}output")
                 generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom)
-                shearingInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom)
-            if not os.path.exists(f"../runs/{conditions}/{filename}/analysis"):
-                os.makedirs(f"../runs/{conditions}/{filename}/analysis")
 
+            if not os.path.exists(f"../runs/{conditions}/{filename}/{prefix}analysis"):
+                os.makedirs(f"../runs/{conditions}/{filename}/{prefix}analysis")
+
+            if simType == "step strain":
+                stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom)
 
         with open(f"../runs/{conditions}/runScripts.py", "w") as f:
             f.write(f"# run this script from {conditions} to run the simulations.\n")

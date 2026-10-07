@@ -32,9 +32,13 @@ def RDFnumba(positions, boxLength, dr):
                 
     return rdfSet        
 
-def posRDF(barrier, refoldBarrier, runNum, vf, numMol, boxLength, particles, bondsPerAtom, prob,suffix):
+def posRDF(barrier, refoldBarrier, runNum, vf, numMol, boxLength, particles, bondsPerAtom, prob, suffix, simType = "gelation"):
     """calculates the positional radial distribution function. modified 
         so that the central particle of each molecule only is taken into account"""
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     if bondsPerAtom == 2:
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
     else:
@@ -43,7 +47,7 @@ def posRDF(barrier, refoldBarrier, runNum, vf, numMol, boxLength, particles, bon
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
     filename = f"Run{runNum}_{conditions}"
     print(f"currently on run {runNum} for barrier {barrier}")
-    with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+    with open(f"../runs/{conditions}/{prefix}timesteps.pkl", "rb") as f:
         timesteps = pickle.load(f)
     parRadius = 2 ** (1/6)
     boxVol = boxLength ** 3
@@ -80,8 +84,12 @@ def posRDF(barrier, refoldBarrier, runNum, vf, numMol, boxLength, particles, bon
     # print("saved rdf plot..")
     return rdfSet, shellBounds
 
-def calcPosRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob,suffixes):
+def calcPosRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob,suffixes, simType = "gelation"):
     """calculates average radial distribution function per energetic barrier."""
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     allRDFsets = defaultdict(list)
     avRDFs = {}
     avRDFsErr = {}
@@ -93,11 +101,11 @@ def calcPosRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bo
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
             if prob < 1:
                 conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
-        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+        with open(f"../runs/{conditions}/{prefix}timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
-            with open(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl", "rb") as f:
+            with open(f"../runs/{conditions}/{filename}/{prefix}analysis/particleTraj.pkl", "rb") as f:
                 particles = pickle.load(f)
 
             rdfSet, shellBounds = posRDF(barrier, refoldBarrier, runNum, vf, numMol, boxLength,
@@ -109,9 +117,13 @@ def calcPosRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bo
         avRDFsErr[barrier] = rdfArray.std(axis = 0)
     return avRDFs, avRDFsErr, shellBounds
 
-def plotAvRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
+def plotAvRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
     """plots radial distribution function for each energetic barrier."""
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avRDF.pkl", "rb") as f:
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/{prefix}data/avRDF.pkl", "rb") as f:
         avRDFs, avRDFsErr, shellBounds = pickle.load(f)
         
     fig, ax = plt.subplots()

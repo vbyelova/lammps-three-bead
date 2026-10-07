@@ -32,7 +32,7 @@ def readData(name, numStep, everyN, numPar, equilTime):
     cols = 6
     timesteps = []
 
-    pattern = r"""\d+\s+\d+\s+\d+""" # digits sandwiched by spaces
+    pattern = r"\d+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+" # digits sandwiched by spaces
 
     # read line by line to see if data or other stuff
     with open(name, 'r') as f:
@@ -65,8 +65,12 @@ def readData(name, numStep, everyN, numPar, equilTime):
     print("dump file processed..")
     return particles, timesteps
 
-def parseBondInfo(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix):
+def parseBondInfo(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType = "gelation"):
     """gets stress tensor information for each bond as fx, fy, fz, dx, dy and dz."""
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     if bondsPerAtom == 2:
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
     else:
@@ -75,14 +79,14 @@ def parseBondInfo(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPe
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
     filename = f"Run{runNum}_{conditions}"
 
-    with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+    with open(f"../runs/{conditions}/{prefix}timesteps.pkl", "rb") as f:
         timesteps = pickle.load(f)
-    with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
+    with open(f"../runs/{conditions}/{filename}/{prefix}analysis/nBonds.pkl", "rb") as f:
         nBonds = pickle.load(f)
 
     bondInfo = {}
     dumpSteps = []
-    with open(f"../runs/{conditions}/{filename}/output/bondinfo.dat") as f:
+    with open(f"../runs/{conditions}/{filename}/{prefix}output/bondinfo.dat") as f:
         frame = -1
         for line in f:
             if line.startswith("ITEM: TIMESTEP"):
@@ -98,7 +102,7 @@ def parseBondInfo(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPe
 
     pat = re.compile(r"\d+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+")
     matched, missed = 0, []
-    with open(f"../runs/{conditions}/{filename}/output/bondinfo.dat") as f:
+    with open(f"../runs/{conditions}/{filename}/{prefix}output/bondinfo.dat") as f:
         for line in f:
             if line.startswith("ITEM") or len(line.split()) != 10:
                 continue
@@ -169,9 +173,13 @@ def parseForPercolation(particles, filename, nBonds, boxLength, timesteps):
     print("saved intermolecular bond information..")
     return percolatedBonds, bondedAtoms
 
-def frameByFramePerc(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix):
+def frameByFramePerc(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType =  "gelation"):
     """finds bonded particles and saves them and over what boundary they are bonded. formatted
         for one value per line, for easier parsing in c++."""
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     bondCounter = 0
     frame = 0
     if bondsPerAtom == 2:
@@ -181,16 +189,16 @@ def frameByFramePerc(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bond
         if prob < 1:
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
     filename = f"Run{runNum}_{conditions}"
-    with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as bondsfile:
+    with open(f"../runs/{conditions}/{filename}/{prefix}analysis/nBonds.pkl", "rb") as bondsfile:
         nBonds = pickle.load(bondsfile)
-    with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+    with open(f"../runs/{conditions}/{prefix}timesteps.pkl", "rb") as f:
         timesteps = pickle.load(f)
-    with open(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl", "rb") as parfile:
+    with open(f"../runs/{conditions}/{filename}/{prefix}analysis/particleTraj.pkl", "rb") as parfile:
         particles = pickle.load(parfile)
     print(len(particles), " is len particles")
     print(numMol * 3, " is numPar")
-    with open(f"../runs/{conditions}/{filename}/output/bondinfo.dat", "r") as f:
-        with open(f"../runs/{conditions}/{filename}/analysis/percinfo.txt", "w") as w:
+    with open(f"../runs/{conditions}/{filename}/{prefix}output/bondinfo.dat", "r") as f:
+        with open(f"../runs/{conditions}/{filename}/{prefix}analysis/percinfo.txt", "w") as w:
             w.write(f"{timesteps[frame]}\n")
             w.write(f"{nBonds[frame]}\n")
             for line in f:
@@ -251,10 +259,14 @@ def parseBondsForVis(filename, nBonds, timesteps):
 
 
 
-def coordination(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix):
+def coordination(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType = "gelation"):
     """a function that finds the coordination of the atoms belonging to a three-bead molecule.
         First finds whether the bond is intramolecular and intermolecular and only counts the
         intermolecular bonds"""
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     if bondsPerAtom == 2:
         conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
     else:
@@ -262,7 +274,7 @@ def coordination(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob,
         if prob < 1:
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
     filename = f"Run{runNum}_{conditions}"
-    with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+    with open(f"../runs/{conditions}/{prefix}timesteps.pkl", "rb") as f:
         timesteps = pickle.load(f)
     with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
         nBonds = pickle.load(f)
@@ -291,8 +303,12 @@ def coordination(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob,
     print("counted intermolecular bonds per atom..")
     return moleculeCoordination, atomCoordination, centralAtomCoordination
 
-def plotCentralCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes):
+def plotCentralCoordination(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
     """plots the average coordination number of the central bead of the molecule over time for every energetic barrier."""
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     fig, ax = plt.subplots()
     colours = (["black", "dimgrey", "grey", "darkgrey", "silver"])
     allCentralCoordination = defaultdict(list)
@@ -306,9 +322,9 @@ def plotCentralCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, 
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
             if prob < 1:
                 conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
-        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+        with open(f"../runs/{conditions}/{prefix}timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
-        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/avPercolation.pkl", "rb") as f:
+        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avPercolation.pkl", "rb") as f:
                 avPercolation, avPercolationErr = pickle.load(f)
 
         for runNum in range(numRuns):
@@ -322,7 +338,7 @@ def plotCentralCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, 
             #     bondInfo = pickle.load(f)            
             # with open(f"../runs/{conditions}/{filename}/analysis/coordination.pkl", "rb") as f:
             #     coords = pickle.load(f)
-            coords = coordination(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix)
+            coords = coordination(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType)
             centralAtomCoordination = coords[2]
         
             allCentralCoordination[barrier].append(centralAtomCoordination.mean(axis = 1))
@@ -348,8 +364,12 @@ def plotCentralCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, 
             # find coordination of central atoms at that point
             
 
-def plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes):
+def plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
     """a function to find the average molecule coordination per run"""
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     allCoordination = defaultdict(list)
     avCoordination = {}
     avCoordinationErr = {}
@@ -366,9 +386,9 @@ def plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLe
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
             if prob < 1:
                 conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
-        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+        with open(f"../runs/{conditions}/{prefix}timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
-        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/avPercolation.pkl", "rb") as f:
+        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avPercolation.pkl", "rb") as f:
             avPercolation, avPercolationErr = pickle.load(f)
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
@@ -379,8 +399,8 @@ def plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLe
             #     nBonds = pickle.load(f)
             # with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "rb") as f:
             #     bondInfo = pickle.load(f)            
-            molCoordination = (coordination(barrier, refoldBarrier, runNum, vf, numMol,
-                                            bondsPerAtom, prob, suffix))[0]
+            molCoordination = (coordination(barrier, refoldBarrier, runNum, vf, numMol, boxLength,
+                                            bondsPerAtom, prob, suffix, simType))[0]
             avCoordinationPerFrame = molCoordination.mean(axis = 1)
             allCoordination[barrier].append(avCoordinationPerFrame)
         coordinationArray = np.array(allCoordination[barrier])
@@ -402,10 +422,13 @@ def plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLe
     print("plotted average molecule coordination..")
     return avCoordination, avCoordinationErr
 
-def plotTotalInterMol(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes):
+def plotTotalInterMol(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
     """plots scatter graph of average intermolecular bond count over simulation for each
         energy barrier."""
-    
+    if simType == "step strain":
+        prefix = "stepStrain_"
+    elif simType == "gelation":
+        prefix = ""
     allBonds = defaultdict(list)
     avNBonds = {}
     avNBondsErr = {}
@@ -422,13 +445,13 @@ def plotTotalInterMol(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLen
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
             if prob < 1:
                 conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
-        with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
+        with open(f"../runs/{conditions}/{prefix}timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
-        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/data/avPercolation.pkl", "rb") as f:
+        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/{prefix}data/avPercolation.pkl", "rb") as f:
             avPercolation, avPercolationErr = pickle.load(f)
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
-            with open(f"../runs/{conditions}/{filename}/analysis/nBonds.pkl", "rb") as f:
+            with open(f"../runs/{conditions}/{filename}/{prefix}analysis/nBonds.pkl", "rb") as f:
                 nBonds = pickle.load(f)
             
             allBonds[barrier].append(nBonds)
