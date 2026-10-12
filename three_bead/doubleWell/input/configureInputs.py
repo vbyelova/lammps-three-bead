@@ -17,7 +17,7 @@ from modules.generateLammpsInput import *
 barrierToUnfold = [10]
 barrierToRefold = 2
 
-numRuns = 1
+numRuns = 2
 vf = [0.07]
 
 boxLength = 30
@@ -25,17 +25,15 @@ prob = 1 # probability of unfolding
 bondsPerAtom = 2
 
 simType = "step strain"
+strainFractions = [0.05, 0.07]
 
 #generate molecule input file
-if simType == "step strain":
-    prefix = "stepStrain_"
-elif simType == "gelation":
-    prefix = ""
+
 for volfrac in vf:
     for barrier in barrierToUnfold:
         numPar = (boxLength**3 * volfrac) / ((1 * 2 **(1 / 6))**3 * (np.pi / 6))
         numMol = int(numPar / 3) + 1
-        conditions = f"unfold{barrier}_refold{barrierToRefold}_Vf{volfrac}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}"
+        conditions = f"unfold{barrier}_refold{barrierToRefold}_Vf{volfrac}_mol{numMol}"
 
         files = []
         for n in range (0, numRuns):
@@ -52,18 +50,26 @@ for volfrac in vf:
             writeAngleFile(angle0, k2, k3, k4, conditions)
 
         for filename in files:
-            if not os.path.exists(f"../runs/{conditions}/{filename}/input"):
-                os.makedirs(f"../runs/{conditions}/{filename}/input")
-                generateThreeBead(f"../runs/{conditions}/{filename}/input/{filename}.in", numMol, boxLength)
-            if not os.path.exists(f"../runs/{conditions}/{filename}/{prefix}output"):
-                os.makedirs(f"../runs/{conditions}/{filename}/{prefix}output")
+            for strainFraction in strainFractions:
+                if simType == "step strain":
+                    prefix = f"stepStrain{strainFraction}_"
+                elif simType == "gelation":
+                    prefix = ""
+                if not os.path.exists(f"../runs/{conditions}/{filename}/input"):
+                    os.makedirs(f"../runs/{conditions}/{filename}/input")
+                    generateThreeBead(f"../runs/{conditions}/{filename}/input/{filename}.in", numMol, boxLength)
+                if not os.path.exists(f"../runs/{conditions}/{filename}/output"):
+                    os.makedirs(f"../runs/{conditions}/{filename}/output")
                 generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom)
 
-            if not os.path.exists(f"../runs/{conditions}/{filename}/{prefix}analysis"):
-                os.makedirs(f"../runs/{conditions}/{filename}/{prefix}analysis")
+                if not os.path.exists(f"../runs/{conditions}/{filename}/{prefix}output"):
+                    os.makedirs(f"../runs/{conditions}/{filename}/{prefix}output")
 
-            if simType == "step strain":
-                stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom)
+                if not os.path.exists(f"../runs/{conditions}/{filename}/{prefix}analysis"):
+                    os.makedirs(f"../runs/{conditions}/{filename}/{prefix}analysis")
+
+                if simType == "step strain":
+                    stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom, strainFraction)
 
         with open(f"../runs/{conditions}/runScripts.py", "w") as f:
             f.write(f"# run this script from {conditions} to run the simulations.\n")
@@ -71,6 +77,8 @@ for volfrac in vf:
                     f"import os\n\n")
             for filename in files:
                 f.write(f"if not os.path.exists(f'../runs/{conditions}/{filename}/input/log.lammps'):\n")
-                f.write(f"\tprint('running simulation {filename}..')\n")
+                f.write(f"\tprint('running gelation simulation {filename}..')\n")
                 f.write(f"\tsubprocess.run(['lmp','-in','in.lammps'], cwd = '{filename}/input')\n\n")
-
+                for strainFraction in strainFractions:
+                    f.write(f"\tprint('running strain fraction = {strainFraction} simulation {filename}..')\n")
+                    f.write(f"\tsubprocess.run(['lmp','-in','stepStrain{strainFraction}_in.lammps'], cwd = '{filename}/input')\n\n")

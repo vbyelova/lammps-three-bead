@@ -161,9 +161,10 @@ def prestructure(conditions, filename, boxLength, prob, bondsPerAtom):
                 - V_f as 7%
                 - inclusion of unfolding as that's very nice for dimer monomerization"""
 
-def stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom):
+def stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom, strainFraction):
     """writes lammps input file for step strain simulations, runs based on restart file. """
-    Nsteps =  40000
+    Nsteps =  50000
+    Nwrite = 1000
     r_cutoff = 1.112462048
     seed = randint(100000, 999999)
     comm = 10
@@ -174,47 +175,95 @@ def stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom)
     print("writing input file..")
 
     # actually write the lammps input file now
-    with open(f"../runs/{conditions}/{filename}/input/stepStrain_in.lammps", "w") as f:
+    with open(f"../runs/{conditions}/{filename}/input/stepStrain{strainFraction}_in.lammps", "w") as f:
         # set some simulation variables
         f.write(f"# simulation variables\n\n")
-        f.write(f"variable Nsteps         equal {Nsteps * 3}\n")
-        f.write(f"variable Nwrite         equal 1000\n")
+        f.write(f"variable Nsteps         equal {Nsteps * 1.5 + 10000}\n")
+        f.write(f"variable Nwrite         equal {Nwrite}\n")
         f.write(f"variable seed           equal {seed}\n")
         f.write(f"variable boxLength      equal lx\n")
         f.write(f"variable r_cutoff       equal {r_cutoff}\n")
-        f.write(f"variable s              equal logfreq3(10,100,{Nsteps})\n")
         f.write(f"variable prob           equal {prob}\n\n")
 
         # now some configuration stuff
         f.write(f"# configure simulation\n\n")
         f.write(f"boundary p p p\n")
-        f.write(f"read_restart restart.gel\n"
-                f"extra/bond/per/atom {bondsPerAtom} extra/special/per/atom {bondsPerAtom}00\n")
-        f.write(f"change_box all triclinic")
+        f.write(f"read_restart restart.gel\n")
+        f.write(f"change_box all triclinic\n")
+        f.write(f"log stepstrain{strainFraction}_input_log.lammps\n")
 
-        f.write(f"log mech_input_log.lammps\n")
+        # output thermo info
+        f.write(f"thermo 1000\n\n")
 
-        # print thermodynamic info
-        f.write(f"thermo 1000\n")
+        # add pair coefficietns
+        f.write(f"pair_style hybrid/overlay zero 5 lj/cut 1.112462048\n")
+        f.write(f"pair_coeff * * lj/cut 1.0 1.0\n")
+        f.write(f"pair_coeff * * zero 5\n")
+        f.write(f"pair_modify shift yes\n\n")
 
-        f.write(f"include ../../angleInfo.in\n\n")
+        # add unfolding and percolation, output dump file
+        f.write(f"include ../../angleInfo.in\n")
         f.write(f"fix bd_nve all nve\n")
         f.write(f"fix bd_langevin all langevin 1 1 10 {seed}\n")
         f.write(f"fix percolate all bond/create 1 1 1 {r_cutoff} 2 iparam {bondsPerAtom}"
                 f" 1 jparam {bondsPerAtom} 1 molecule inter prob {prob} {seed}\n\n")
+        f.write(f"dump 1 all custom {Nwrite} ../stepStrain{strainFraction}_output/dump.lammpstrj"
+                f" id x y z type mol\n\n")
 
+        # reset image flags for triclinic system
         f.write(f"# reneighbour and reset image flags after box change\n")
         f.write(f"reset_atoms image all\n")
-        f.write(f"run zero\n")
+        f.write(f"reset_timestep 0\n\n")
 
-        f.write(f"reset_timestep 0\n")
-        f.write(f"dump 1 all custom 1000 ../output/stepStrain_dump.lammpstrj"
-                f" id x y z type mol\n")
+        # output stress and change in box tilt
+        f.write(f"# calculate global scalar stress and strain\n")
+        f.write(f"variable xy equal xy\n")
+        f.write(f"compute individualstress all stress/atom NULL\n")
+        f.write(f"compute stress all reduce sum c_individualstress[1] c_individualstress[2] c_individualstress[3]\n\n")
+
+        f.write(f"fix stressoutput all ave/time {Nwrite} 1 {Nwrite} c_stress[*] v_xy file ../stepStrain{strainFraction}_output/stress.dat mode scalar\n\n")
+
+        # output intramolecular angles and bond info
+
+        f.write(f"# compute commands for analysis\n\n")
+        f.write(f"compute intra all nbond/atom bond/type 1\n")
+        f.write(f"compute inter all nbond/atom bond/type 2\n")
+        f.write(f"compute totalbonds all count/type bond\n")
+        f.write(f"variable totalintra equal c_totalbonds[1]\n")
+        f.write(f"variable totalinter equal c_totalbonds[2]\n")
+        f.write(f"variable allbonds equal v_totalintra+v_totalinter\n\n")
+
+        f.write(f"compute bondedatomid1 all property/local batom1\n")
+        f.write(f"compute bondedatomid2 all property/local batom2\n")
+        f.write(f"compute btype all property/local btype\n")
+        f.write(f"compute bondforce all bond/local fx fy fz\n")
+        f.write(f"compute bonddir all bond/local dx dy dz\n")
+        f.write(f"compute bondlen all bond/local dist\n")
+        
+        f.write(f'fix nbondsfile all print {Nwrite} "${{allbonds}} " file'
+                f' ../stepStrain{strainFraction}_output/nbonds.dat screen no\n')
+        f.write(f"dump bondinfo all local {Nwrite} ../stepStrain{strainFraction}_output/bondinfo.dat"
+                f" index c_bondedatomid1 c_bondedatomid2"
+                f" c_bondforce[*] c_bonddir[*] c_bondlen\n")
+
+        f.write(f"dump angles all local {Nwrite} ../stepStrain{strainFraction}_output/moleculeangles.dat"
+                f" index c_angles c_angle_pe\n\n")
+        f.write(f"run 0\n\n")
+
         f.write(f"dump_modify 1 sort id\n")
         f.write(f"neighbor 0.5 bin\n")
-        f.write(f"neigh_modify every 1 delay 2 check yes\n")
+        f.write(f"neigh_modify every 1 delay 2 check yes\n\n")
+
+        
+
+        f.write(f"run 10000\n\n")
+
+        # shear to certain tilt factor
+        f.write(f"fix shear all deform 1 xy final {boxLength * strainFraction} remap v\n")
+        f.write(f"run {int(Nsteps * 0.5)}\n\n")
+
+        # hold at fixed strain
+        f.write(f"unfix shear\n")
         f.write(f"run {Nsteps}\n")
 
-        f.write(f"run 10000\n")
-
-    print("made step strain input file")
+    print(f"made step strain input file for strain fraction = {strainFraction}")
