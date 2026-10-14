@@ -32,11 +32,11 @@ def RDFnumba(positions, boxLength, dr):
                 
     return rdfSet        
 
-def posRDF(barrier, refoldBarrier, runNum, vf, numMol, boxLength, particles, bondsPerAtom, prob, suffix, simType = "gelation"):
+def posRDF(barrier, refoldBarrier, runNum, vf, numMol, boxLength, particles, bondsPerAtom, prob, suffix, simType, strainFraction):
     """calculates the positional radial distribution function. modified 
         so that the central particle of each molecule only is taken into account"""
     if simType == "step strain":
-        prefix = "stepStrain_"
+        prefix = f"stepStrain{strainFraction}_"
     elif simType == "gelation":
         prefix = ""
     if bondsPerAtom == 2:
@@ -84,10 +84,10 @@ def posRDF(barrier, refoldBarrier, runNum, vf, numMol, boxLength, particles, bon
     # print("saved rdf plot..")
     return rdfSet, shellBounds
 
-def calcPosRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob,suffixes, simType = "gelation"):
+def calcPosRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob,suffixes, simType, strainFraction):
     """calculates average radial distribution function per energetic barrier."""
     if simType == "step strain":
-        prefix = "stepStrain_"
+        prefix = f"stepStrain{strainFraction}_"
     elif simType == "gelation":
         prefix = ""
     allRDFsets = defaultdict(list)
@@ -117,10 +117,10 @@ def calcPosRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bo
         avRDFsErr[barrier] = rdfArray.std(axis = 0)
     return avRDFs, avRDFsErr, shellBounds
 
-def plotAvRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
+def plotAvRDF(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType, strainFraction):
     """plots radial distribution function for each energetic barrier."""
     if simType == "step strain":
-        prefix = "stepStrain_"
+        prefix = f"stepStrain{strainFraction}_"
     elif simType == "gelation":
         prefix = ""
     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/{prefix}data/avRDF.pkl", "rb") as f:

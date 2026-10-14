@@ -46,10 +46,10 @@ def plotForceMagnitude(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondI
     plt.tight_layout()
     plt.show()
 
-def calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInfo, boxLength, bondsPerAtom, prob, suffix, simType = "gelation"):
+def calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInfo, boxLength, bondsPerAtom, prob, suffix, simType, strainFraction):
     """calculates the stress tensor from individual bond forces and vectors."""
     if simType == "step strain":
-        prefix = "stepStrain_"
+        prefix = f"stepStrain{strainFraction}_"
     elif simType == "gelation":
         prefix = ""
     if bondsPerAtom == 2:
@@ -82,13 +82,13 @@ def calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInf
             frame += 1
     return avStressTensors
 
-def calcAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
+def calcAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType, strainFraction):
     """calculates the average pressure per energetic barrier over time. uses contributions from bonds only."""
     allPressure = defaultdict(list)
     avPressure = {}
     avPressureErr = {}
     if simType == "step strain":
-        prefix = "stepStrain_"
+        prefix = f"stepStrain{strainFraction}_"
     elif simType == "gelation":
         prefix = ""
     for barrier, suffix in zip(unfoldBarriers, suffixes):
@@ -112,7 +112,7 @@ def calcAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength
             with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "rb") as f:
                 bondInfo = pickle.load(f)
             avStressTensors = calcStressTensor(barrier, refoldBarrier, runNum, vf, numMol,
-                                               nBonds, bondInfo, boxLength, bondsPerAtom, prob, suffix, simType)
+                                               nBonds, bondInfo, boxLength, bondsPerAtom, prob, suffix, simType, strainFraction)
             runPressure = [np.trace(tensor) / 3 for tensor in avStressTensors]
             allPressure[barrier].append(runPressure)
         
@@ -122,10 +122,10 @@ def calcAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength
 
     return avPressure, avPressureErr
 
-def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
+def plotAvPressure(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType, strainFraction):
     """plots the calculated pressure over time per energetic barrier."""
     if simType == "step strain":
-        prefix = "stepStrain_"
+        prefix = f"stepStrain{strainFraction}_"
     elif simType == "gelation":
         prefix = ""
     colours = (["black", "dimgrey", "grey", "darkgrey", "silver"])

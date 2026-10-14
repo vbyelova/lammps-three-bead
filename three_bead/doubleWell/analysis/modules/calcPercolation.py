@@ -138,10 +138,10 @@ def testFrameByFrame():
         dimsPercolated.append(system.percolationDimension(V, E))
     return print(dimsPercolated)
 
-def getPercDims(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType = "gelation"):
+def getPercDims(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType, strainFraction):
     """retrieves percolation dimensions from text file."""
     if simType == "step strain":
-        prefix = "stepStrain_"
+        prefix = f"stepStrain{strainFraction}_"
     elif simType == "gelation":
         prefix = ""
     if bondsPerAtom == 2:
@@ -160,10 +160,10 @@ def getPercDims(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerA
     
     return percDims
 
-def calcAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
+def calcAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType, strainFraction):
     """calculates the average percolation dimension per energetic barrier."""
     if simType == "step strain":
-        prefix = "stepStrain_"
+        prefix = f"stepStrain{strainFraction}_"
     elif simType == "gelation":
         prefix = ""
     allPercolation = defaultdict(list)
@@ -206,12 +206,12 @@ def calcAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLen
     return avPercolation, avPercolationErr
 
 
-def plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType):
+def plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType, strainFraction):
     """plots the average percolation dimension with time for different energetic barriers."""
     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/{prefix}data/avPercolation.pkl", "rb") as f:
         avPercolation, avPercolationErr = pickle.load(f)
     if simType == "step strain":
-        prefix = "stepStrain_"
+        prefix = f"stepStrain{strainFraction}_"
     elif simType == "gelation":
         prefix = ""
     

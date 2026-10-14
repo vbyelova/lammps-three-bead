@@ -73,7 +73,8 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
                 f" id x y z type mol\n")
         f.write(f"dump_modify 1 sort id\n\n")
 
-        f.write(f"timestep 0.0001\n")
+        f.write(f"timestep 0.0001\n\n")
+
         f.write(f"run {equilTime}\n")
         f.write(f"unfix nvelim\n")
         f.write(f"unfix thermoequil\n\n")
@@ -173,6 +174,15 @@ def stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom,
     halfLength = int(0.5 * boxLength)
 
     print("writing input file..")
+    prefix = f"stepStrain{strainFraction}_"
+    with open(f"../runs/{conditions}/{filename}/{prefix}output/systemData.txt", "w") as f:
+        f.write(f"[systemData]\n")
+        f.write(f"boxLength = {boxLength}\n")
+        f.write(f"Npar = {numPar}\n")
+        f.write(f"Nsteps = {Nsteps}\n")
+        f.write(f"Nwrite = {Nwrite}\n")
+        f.write(f"equilTime = 0\n")
+        f.write(f"prob = {prob}\n")
 
     # actually write the lammps input file now
     with open(f"../runs/{conditions}/{filename}/input/stepStrain{strainFraction}_in.lammps", "w") as f:
@@ -238,8 +248,11 @@ def stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom,
         f.write(f"compute btype all property/local btype\n")
         f.write(f"compute bondforce all bond/local fx fy fz\n")
         f.write(f"compute bonddir all bond/local dx dy dz\n")
-        f.write(f"compute bondlen all bond/local dist\n")
-        
+        f.write(f"compute bondlen all bond/local dist\n\n")
+
+        f.write(f"compute angles all angle/local theta\n")
+        f.write(f"compute angle_pe all angle/local eng\n\n")
+
         f.write(f'fix nbondsfile all print {Nwrite} "${{allbonds}} " file'
                 f' ../stepStrain{strainFraction}_output/nbonds.dat screen no\n')
         f.write(f"dump bondinfo all local {Nwrite} ../stepStrain{strainFraction}_output/bondinfo.dat"
@@ -248,12 +261,12 @@ def stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom,
 
         f.write(f"dump angles all local {Nwrite} ../stepStrain{strainFraction}_output/moleculeangles.dat"
                 f" index c_angles c_angle_pe\n\n")
-        f.write(f"run 0\n\n")
 
         f.write(f"dump_modify 1 sort id\n")
         f.write(f"neighbor 0.5 bin\n")
         f.write(f"neigh_modify every 1 delay 2 check yes\n\n")
 
+        f.write(f"run 0\n\n")
         
 
         f.write(f"run 10000\n\n")

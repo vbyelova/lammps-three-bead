@@ -24,10 +24,10 @@ def coordToColour(coordNum, minCoord = 0, maxCoord = 2):
     b = 1- norm
     return r, g, b
 
-def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particles, unfoldedMols, angles, bondsPerAtom, prob, suffix, simType = "gelation"):
+def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particles, unfoldedMols, angles, bondsPerAtom, prob, suffix, simType, strainFraction):
     """visualises trajectories over time according to unfolding degree of molecule."""
     if simType == "step strain":
-        prefix = "stepStrain_"
+        prefix = f"stepStrain{strainFraction}_"
     elif simType == "gelation":
         prefix = ""
     pymol.finish_launching()

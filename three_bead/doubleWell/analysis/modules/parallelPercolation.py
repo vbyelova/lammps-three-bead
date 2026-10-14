@@ -6,9 +6,9 @@ import os
 
 def process_single_run(args):
     """function used to process as many percolation calculations as possible. Calls on a C++ function."""
-    barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType  = args
+    barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType, strainFraction  = args
     if simType == "step strain":
-        prefix = "stepStrain_"
+        prefix = f"stepStrain{strainFraction}_"
     elif simType == "gelation":
         prefix = ""
     if bondsPerAtom == 2:
@@ -25,7 +25,7 @@ def process_single_run(args):
         if suffix == "NOPERCOLATION":
             return
         
-        frameByFramePerc(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType)
+        frameByFramePerc(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType, strainFraction)
         
         systemDataFile = f"../runs/{conditions}/{filename}/{prefix}output/systemData.txt"
         percInfoFile   = f"../runs/{conditions}/{filename}/{prefix}analysis/percinfo.txt"

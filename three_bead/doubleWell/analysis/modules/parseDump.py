@@ -12,7 +12,7 @@ from itertools import cycle
 from collections import defaultdict
 from .threeBeadClasses import *
 
-def parseSystemData(name):
+def parseSystemData(name, simType):
     """parses the system information printed out previously to be used in analysis"""
     print("checking directory: ", name)
     config = configparser.ConfigParser()
@@ -21,10 +21,13 @@ def parseSystemData(name):
     Npar = int(config.get("systemData", "Npar"))
     Nsteps = int(config.get("systemData", "Nsteps"))
     Nwrite = int(config.get("systemData", "Nwrite"))
-    equilTime = int(config.get("systemData", "equilTime"))
+    if simType == "step strain":
+        equilTime = 0
+    else:
+        equilTime = int(config.get("systemData", "equilTime"))
     return boxLength, Npar, Nsteps, Nwrite, equilTime
 
-def readData(name, numStep, everyN, numPar, equilTime):
+def readData(name, numStep, everyN, numPar, equilTime = 0):
     """ A function to read in data from a lammps dump file and parse it into arrays."""
     # initialise counters
     frame = 0
@@ -65,10 +68,10 @@ def readData(name, numStep, everyN, numPar, equilTime):
     print("dump file processed..")
     return particles, timesteps
 
-def parseBondInfo(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType = "gelation"):
+def parseBondInfo(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType, strainFraction):
     """gets stress tensor information for each bond as fx, fy, fz, dx, dy and dz."""
     if simType == "step strain":
-        prefix = "stepStrain_"
+        prefix = f"stepStrain{strainFraction}_"
     elif simType == "gelation":
         prefix = ""
     if bondsPerAtom == 2:
@@ -100,14 +103,18 @@ def parseBondInfo(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPe
                 assert n == nBonds[frame], (frame, n, nBonds[frame])
     
 
-    pat = re.compile(r"\d+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+")
+    num = r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?"
+    pat = re.compile(rf"^\s*\d+(?:\s+{num}){{9}}\s*$")
+
     matched, missed = 0, []
     with open(f"../runs/{conditions}/{filename}/{prefix}output/bondinfo.dat") as f:
         for line in f:
             if line.startswith("ITEM") or len(line.split()) != 10:
                 continue
-            if pat.search(line): matched += 1
-            else: missed.append(line)
+            if pat.fullmatch(line.rstrip("\n")):
+                matched += 1
+            else:
+                missed.append(line)
     print(matched, sum(nBonds), len(missed))
     print(missed[:5])
     return bondInfo
@@ -173,11 +180,11 @@ def parseForPercolation(particles, filename, nBonds, boxLength, timesteps):
     print("saved intermolecular bond information..")
     return percolatedBonds, bondedAtoms
 
-def frameByFramePerc(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType =  "gelation"):
+def frameByFramePerc(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType, strainFraction):
     """finds bonded particles and saves them and over what boundary they are bonded. formatted
         for one value per line, for easier parsing in c++."""
     if simType == "step strain":
-        prefix = "stepStrain_"
+        prefix = f"stepStrain{strainFraction}_"
     elif simType == "gelation":
         prefix = ""
     bondCounter = 0
@@ -259,12 +266,12 @@ def parseBondsForVis(filename, nBonds, timesteps):
 
 
 
-def coordination(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType = "gelation"):
+def coordination(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType, strainFraction):
     """a function that finds the coordination of the atoms belonging to a three-bead molecule.
         First finds whether the bond is intramolecular and intermolecular and only counts the
         intermolecular bonds"""
     if simType == "step strain":
-        prefix = "stepStrain_"
+        prefix = f"stepStrain{strainFraction}_"
     elif simType == "gelation":
         prefix = ""
     if bondsPerAtom == 2:
@@ -303,10 +310,10 @@ def coordination(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPer
     print("counted intermolecular bonds per atom..")
     return moleculeCoordination, atomCoordination, centralAtomCoordination
 
-def plotCentralCoordination(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
+def plotCentralCoordination(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType, strainFraction):
     """plots the average coordination number of the central bead of the molecule over time for every energetic barrier."""
     if simType == "step strain":
-        prefix = "stepStrain_"
+        prefix = f"stepStrain{strainFraction}_"
     elif simType == "gelation":
         prefix = ""
     fig, ax = plt.subplots()
@@ -338,7 +345,7 @@ def plotCentralCoordination(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, 
             #     bondInfo = pickle.load(f)            
             # with open(f"../runs/{conditions}/{filename}/analysis/coordination.pkl", "rb") as f:
             #     coords = pickle.load(f)
-            coords = coordination(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType)
+            coords = coordination(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType, strainFraction)
             centralAtomCoordination = coords[2]
         
             allCentralCoordination[barrier].append(centralAtomCoordination.mean(axis = 1))
@@ -364,10 +371,10 @@ def plotCentralCoordination(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, 
             # find coordination of central atoms at that point
             
 
-def plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
+def plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType, strainFraction):
     """a function to find the average molecule coordination per run"""
     if simType == "step strain":
-        prefix = "stepStrain_"
+        prefix = f"stepStrain{strainFraction}_"
     elif simType == "gelation":
         prefix = ""
     allCoordination = defaultdict(list)
@@ -400,7 +407,7 @@ def plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
             # with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "rb") as f:
             #     bondInfo = pickle.load(f)            
             molCoordination = (coordination(barrier, refoldBarrier, runNum, vf, numMol, boxLength,
-                                            bondsPerAtom, prob, suffix, simType))[0]
+                                            bondsPerAtom, prob, suffix, simType, strainFraction))[0]
             avCoordinationPerFrame = molCoordination.mean(axis = 1)
             allCoordination[barrier].append(avCoordinationPerFrame)
         coordinationArray = np.array(allCoordination[barrier])
@@ -422,11 +429,11 @@ def plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
     print("plotted average molecule coordination..")
     return avCoordination, avCoordinationErr
 
-def plotTotalInterMol(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType = "gelation"):
+def plotTotalInterMol(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType, strainFraction):
     """plots scatter graph of average intermolecular bond count over simulation for each
         energy barrier."""
     if simType == "step strain":
-        prefix = "stepStrain_"
+        prefix = f"stepStrain{strainFraction}_"
     elif simType == "gelation":
         prefix = ""
     allBonds = defaultdict(list)
