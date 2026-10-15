@@ -125,13 +125,18 @@ def totalBonds(filename):
     nBonds = []
     bondedAtoms = []
     with open(filename, "r") as f:
-        next(f)
         for line in f:
-            line = int(line[:-1])
-            nBonds.append(line)
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            step, value = line.split()[:2]
+            nBonds.append(int(float(value)))
 
     print("counted total bonds across the system in each frame..")
     return nBonds
+
+def parseStress(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType, strainFraction):
+    """extracts global stress calculated during lammps for use in calculating shear modulus"""
 
 def boundaryCheck(val, boxLength):
     """checks if a coordinate is crossing a boundary condition and returns values for periodic boundaries."""

@@ -233,6 +233,7 @@ def stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom,
 
         f.write(f"fix stressoutput all ave/time {Nwrite} 1 {Nwrite} c_stress[*] v_xy file ../stepStrain{strainFraction}_output/stress.dat mode scalar\n\n")
 
+
         # output intramolecular angles and bond info
 
         f.write(f"# compute commands for analysis\n\n")
@@ -242,6 +243,9 @@ def stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom,
         f.write(f"variable totalintra equal c_totalbonds[1]\n")
         f.write(f"variable totalinter equal c_totalbonds[2]\n")
         f.write(f"variable allbonds equal v_totalintra+v_totalinter\n\n")
+
+        f.write(f"fix nbonds all ave/time {Nwrite} 1 {Nwrite} v_allbonds file ../stepStrain{strainFraction}_output/nbonds.dat mode scalar\n\n")
+        
 
         f.write(f"compute bondedatomid1 all property/local batom1\n")
         f.write(f"compute bondedatomid2 all property/local batom2\n")
@@ -253,8 +257,6 @@ def stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom,
         f.write(f"compute angles all angle/local theta\n")
         f.write(f"compute angle_pe all angle/local eng\n\n")
 
-        f.write(f'fix nbondsfile all print {Nwrite} "${{allbonds}} " file'
-                f' ../stepStrain{strainFraction}_output/nbonds.dat screen no\n')
         f.write(f"dump bondinfo all local {Nwrite} ../stepStrain{strainFraction}_output/bondinfo.dat"
                 f" index c_bondedatomid1 c_bondedatomid2"
                 f" c_bondforce[*] c_bonddir[*] c_bondlen\n")

@@ -30,7 +30,7 @@ bondsPerAtom = 2
 prob = 1
 
 simType = "step strain"
-strainFractions = [0.05, 0.07]
+strainFractions = [0.05]
 
 for barrier, suffix in zip(unfoldBarriers, suffixes):
     for strainFraction in strainFractions:
@@ -132,16 +132,16 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
 #     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avPercolation.pkl", "wb") as f:
 #             pickle.dump((avPercolation, avPercolationErr), f)
 
-perc_args = [
-    (singleRunParams)
-    for barrier, suffix in zip(unfoldBarriers, suffixes)
-    for runNum in range(numRuns)
-    if suffix not in ("NOPERCOLATIONNOLJ", "NOPERCOLATION")   # skip non-percolation runs early
-]
+# perc_args = [
+#     (singleRunParams)
+#     for barrier, suffix in zip(unfoldBarriers, suffixes)
+#     for runNum in range(numRuns)
+#     if suffix not in ("NOPERCOLATIONNOLJ", "NOPERCOLATION")   # skip non-percolation runs early
+# ]
 
-# Use all available cores, or cap it (e.g. mp.cpu_count() - 1)
-with mp.Pool(processes=mp.cpu_count()) as pool:
-    pool.map(process_single_run, perc_args)
+# # Use all available cores, or cap it (e.g. mp.cpu_count() - 1)
+# with mp.Pool(processes=mp.cpu_count()) as pool:
+#     pool.map(process_single_run, perc_args)
 
 # if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avRDF.pkl"):
 #     avRDFs, avRDFsErr, shellBounds = calcPosRDF(*manyRunParams)
@@ -154,10 +154,10 @@ with mp.Pool(processes=mp.cpu_count()) as pool:
 #     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avNewUnfoldedMol.pkl", "wb") as f:
 #         pickle.dump((avNewUnfoldedMol, avNewUnfoldedMolErr), f)
 
-# if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/unfoldedOverTime.pkl"):
-#     avUnfoldOverTime, avUnfoldOverTimeErr = unfoldedOverTime(*manyRunParams)
-#     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/unfoldedOverTime.pkl", "wb") as f:
-#         pickle.dump((avUnfoldOverTime, avUnfoldOverTimeErr), f)
+if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/unfoldedOverTime.pkl"):
+    avUnfoldOverTime, avUnfoldOverTimeErr = unfoldedOverTime(*manyRunParams)
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/unfoldedOverTime.pkl", "wb") as f:
+        pickle.dump((avUnfoldOverTime, avUnfoldOverTimeErr), f)
 
 # if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/{prefix}data/avPressure.pkl"):
 #     avPressure, avPressureErr = calcAvPressure(*manyRunParams)
@@ -183,7 +183,7 @@ with mp.Pool(processes=mp.cpu_count()) as pool:
 #plotAvCoordination(*manyRunParams)
 #plotCrosslinkPercentAtPercAndSimEnd(*manyRunParams)
 #plotBimodalAndDensityUnfoldedCorr(*manyRunParams)
-#plotUnfoldedOverTime(*manyRunParams)
+plotUnfoldedOverTimeStepStrain(*manyRunParams)
 #plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes)
 #plotTotalInterMol(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom)
 #plotAvPressure(*manyRunParams)
