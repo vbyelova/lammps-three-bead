@@ -6,33 +6,35 @@ import os
 
 from modules.doubleWellCoeffs import *
 from modules.generateMonomer import *
-from modules.generateDimer import *
 from modules.generateThreeBead import *
 from modules.generateLammpsInput import *
-from modules.generateRDF import *
 
 #generate optimal values for quartic function
 
 # first input value is unfolding barrier height
 # second input value is minimum energy for unfolded state
 
-barrierToUnfold = [10]
+barrierToUnfold = [1]
 barrierToRefold = 2
 
-numRuns = 1
+numRuns = 5
 vf = [0.07]
 
 boxLength = 30
 prob = 1 # probability of unfolding
 bondsPerAtom = 2
 
+energy = 1
+dist = 0.1
+
+prefix = f"energy{energy}_dist{dist}_"
 #generate molecule input file
 
 for volfrac in vf:
     for barrier in barrierToUnfold:
         numPar = (boxLength**3 * volfrac) / ((1 * 2 **(1 / 6))**3 * (np.pi / 6))
         numMol = int(numPar / 3) + 1
-        conditions = f"unfold{barrier}_refold{barrierToRefold}_Vf{volfrac}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}"
+        conditions = f"{prefix}unfold{barrier}_refold{barrierToRefold}_Vf{volfrac}_mol{numMol}"
 
         files = []
         for n in range (0, numRuns):
@@ -54,8 +56,7 @@ for volfrac in vf:
                 generateThreeBead(f"../runs/{conditions}/{filename}/input/{filename}.in", numMol, boxLength)
             if not os.path.exists(f"../runs/{conditions}/{filename}/output"):
                 os.makedirs(f"../runs/{conditions}/{filename}/output")
-                generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom)
-                shearingInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom)
+                generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom, energy, dist)
             if not os.path.exists(f"../runs/{conditions}/{filename}/analysis"):
                 os.makedirs(f"../runs/{conditions}/{filename}/analysis")
 
