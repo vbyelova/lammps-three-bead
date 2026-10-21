@@ -135,8 +135,48 @@ def totalBonds(filename):
     print("counted total bonds across the system in each frame..")
     return nBonds
 
-def parseStress(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType, strainFraction):
-    """extracts global stress calculated during lammps for use in calculating shear modulus"""
+def parseStressAndStrain(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType, strainFraction):
+    """extracts global stress calculated during lammps for use in calculating shear modulus. also extracts change in L
+        and calculates strain"""
+    stresses = []
+    length_changes = []
+    strains = [0]
+    timesteps = []
+    if simType == "step strain":
+        prefix = f"stepStrain{strainFraction}_"
+    elif simType == "gelation":
+        prefix = ""
+    bondCounter = 0
+    frame = 0
+    if bondsPerAtom == 2:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+    else:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+        if prob < 1:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
+    filename = f"Run{runNum}_{conditions}"
+    with open(f"../runs/{conditions}/{filename}/{prefix}output/stress.dat", "r") as f:
+        for line in f:
+            if line.startswith("#"):
+                continue
+            line = line.strip()
+            info = line.rsplit()
+            stresses.append(float(info[1]))
+            length_changes.append(float(info[4]))
+            timesteps.append(int(info[0]))
+
+    for w in range(1, len(length_changes)):
+        strains.append(np.absolute(length_changes[w] - length_changes[w - 1]))
+
+    plt.plot(timesteps, stresses)
+    plt.show()
+    return
+    
+    
+
+
+
+
 
 def boundaryCheck(val, boxLength):
     """checks if a coordinate is crossing a boundary condition and returns values for periodic boundaries."""

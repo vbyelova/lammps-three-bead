@@ -14,18 +14,18 @@ from modules.generateLammpsInput import *
 # first input value is unfolding barrier height
 # second input value is minimum energy for unfolded state
 
-barrierToUnfold = [10]
+barrierToUnfold = [1, 5]
 barrierToRefold = 2
 
-numRuns = 2
+numRuns = 5
 vf = [0.07]
 
-boxLength = 10
+boxLength = 50
 prob = 1 # probability of unfolding
 bondsPerAtom = 2
 
 simType = "step strain"
-strainFractions = [0.05, 0.07]
+strainFractions = [0.05, 0.2]
 
 #generate molecule input file
 

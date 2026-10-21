@@ -188,7 +188,7 @@ def stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom,
     with open(f"../runs/{conditions}/{filename}/input/stepStrain{strainFraction}_in.lammps", "w") as f:
         # set some simulation variables
         f.write(f"# simulation variables\n\n")
-        f.write(f"variable Nsteps         equal {Nsteps * 1.5 + 10000}\n")
+        f.write(f"variable Nsteps         equal {Nsteps * 3.04 + 10000}\n")
         f.write(f"variable Nwrite         equal {Nwrite}\n")
         f.write(f"variable seed           equal {seed}\n")
         f.write(f"variable boxLength      equal lx\n")
@@ -275,10 +275,10 @@ def stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom,
 
         # shear to certain tilt factor
         f.write(f"fix shear all deform 1 xy final {boxLength * strainFraction} remap v\n")
-        f.write(f"run {int(Nsteps * 0.5)}\n\n")
+        f.write(f"run {int(Nsteps * 0.04)}\n\n")
 
         # hold at fixed strain
         f.write(f"unfix shear\n")
-        f.write(f"run {Nsteps}\n")
+        f.write(f"run {Nsteps * 3}\n")
 
     print(f"made step strain input file for strain fraction = {strainFraction}")

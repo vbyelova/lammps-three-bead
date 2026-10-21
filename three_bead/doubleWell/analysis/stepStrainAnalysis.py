@@ -19,18 +19,19 @@ from modules.calcPorosity import *
 from modules.parallelPercolation import *
 
 # let's get the system data first
-unfoldBarriers = [10]#[1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
+unfoldBarriers = [1]#[1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
 suffixes = [""]#["", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ"]
 refoldBarrier = 2
-numRuns = 2
+numRuns = 1
+
 vf = 0.07
-numMol = 32
-boxLength = 10
+numMol = 3939
+boxLength = 50
 bondsPerAtom = 2
 prob = 1
 
 simType = "step strain"
-strainFractions = [0.05]
+strainFractions = [0.2]
 
 for barrier, suffix in zip(unfoldBarriers, suffixes):
     for strainFraction in strainFractions:
@@ -49,7 +50,7 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
 
             boxLength, nPar, nSteps, nWrite, equilTime = systemData[0], systemData[1], systemData[2], systemData[3], systemData[4]
             # # let's parse the dump file first and save it for later
-
+            parseStressAndStrain(*singleRunParams)
             # make directories for data and figures
             if not os.path.exists(f"../runs/{conditions}/{filename}/{prefix}analysis/figs"):
                 os.makedirs(f"../runs/{conditions}/{filename}/{prefix}analysis/figs")
@@ -158,6 +159,7 @@ if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPe
     avUnfoldOverTime, avUnfoldOverTimeErr = unfoldedOverTime(*manyRunParams)
     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/unfoldedOverTime.pkl", "wb") as f:
         pickle.dump((avUnfoldOverTime, avUnfoldOverTimeErr), f)
+
 
 # if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/{prefix}data/avPressure.pkl"):
 #     avPressure, avPressureErr = calcAvPressure(*manyRunParams)

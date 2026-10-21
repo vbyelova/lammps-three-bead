@@ -80,6 +80,9 @@ def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particle
     # framesToMp4(f"Run{runNum}_Vf{vf}_mol{numMol}.mp4", framesDir, fps = 10)
     return
 
+def loadBondForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particles, unfoldedMols, angles, bondsPerAtom, prob, suffix, simType, strainFraction):
+    """loads in bond information and visualises them as cylinders"""
+
 def loadCoordVis(barrier, refoldBarrier, runNum, vf, numMol, particles, timesteps, parCoordination):
     """visualises trajectories in pymol and colours according to extent of molecule coordination."""
     pymol.finish_launching()
