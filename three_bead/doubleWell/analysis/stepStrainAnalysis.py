@@ -16,13 +16,14 @@ from modules.calcStressTensor import *
 from modules.threeBeadClasses import *
 from modules.parseRDF import *
 from modules.calcPorosity import *
+from modules.calcRheology import *
 from modules.parallelPercolation import *
 
 # let's get the system data first
-unfoldBarriers = [1]#[1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
-suffixes = [""]#["", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ"]
+unfoldBarriers = [1, 5]#[1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
+suffixes = ["", ""]#["", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ"]
 refoldBarrier = 2
-numRuns = 1
+numRuns = 5
 
 vf = 0.07
 numMol = 3939
@@ -50,7 +51,7 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
 
             boxLength, nPar, nSteps, nWrite, equilTime = systemData[0], systemData[1], systemData[2], systemData[3], systemData[4]
             # # let's parse the dump file first and save it for later
-            parseStressAndStrain(*singleRunParams)
+            #parseStressAndStrain(*singleRunParams)
             # make directories for data and figures
             if not os.path.exists(f"../runs/{conditions}/{filename}/{prefix}analysis/figs"):
                 os.makedirs(f"../runs/{conditions}/{filename}/{prefix}analysis/figs")
@@ -107,13 +108,17 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
                 with open(f"../runs/{conditions}/{filename}/{prefix}analysis/angleDist.pkl", "wb") as f:
                     pickle.dump((hist, bins, finalFrameAngles), f)
 
+            if not os.path.exists(f"../runs/{conditions}/{filename}/{prefix}analysis/stressAndStrain.pkl"):
+                stresses, strains = parseStressAndStrain(*singleRunParams)
+                with open(f"../runs/{conditions}/{filename}/{prefix}analysis/stressAndStrain.pkl", "wb") as f:
+                    pickle.dump((stresses, strains), f)
             # percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix)
             # if not os.path.exists(f"../runs/{conditions}/{filename}/{prefix}analysis/percDims.pkl"):
             #     with open(f"../runs/{conditions}/{filename}/{prefix}analysis/percDims.pkl", "wb") as f:
             #         pickle.dump(percDims, f)
             
             
-# if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/atPercFractalDims.pkl"):
+# if not os.path.exists(f"../runs/boxLengtsh{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/atPercFractalDims.pkl"):
 #     atPercFinalFractalDims, atPercFinalFractalDimsError, atPercCorrLength, atPercCorrLengthErr = (
 #                                                                             findAllFractalDims(unfoldBarriers, refoldBarrier,
 #                                                                             numRuns, vf, numMol, boxLength,
@@ -160,6 +165,10 @@ if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPe
     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/unfoldedOverTime.pkl", "wb") as f:
         pickle.dump((avUnfoldOverTime, avUnfoldOverTimeErr), f)
 
+if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avStressAndStrain.pkl"):
+    avStresses, avStressesErr, avStrains, avStrainsErr = calcAvStressAndStrain(*manyRunParams)
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avStressAndStrain.pkl", "wb") as f:
+        pickle.dump((avStresses, avStressesErr, avStrains, avStrainsErr), f)
 
 # if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/{prefix}data/avPressure.pkl"):
 #     avPressure, avPressureErr = calcAvPressure(*manyRunParams)
@@ -185,7 +194,8 @@ if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPe
 #plotAvCoordination(*manyRunParams)
 #plotCrosslinkPercentAtPercAndSimEnd(*manyRunParams)
 #plotBimodalAndDensityUnfoldedCorr(*manyRunParams)
-plotUnfoldedOverTimeStepStrain(*manyRunParams)
+#plotUnfoldedOverTimeStepStrain(*manyRunParams)
+calcAvShearModulus(*manyRunParams)
 #plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes)
 #plotTotalInterMol(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom)
 #plotAvPressure(*manyRunParams)

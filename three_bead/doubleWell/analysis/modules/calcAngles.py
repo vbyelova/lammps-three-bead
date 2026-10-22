@@ -92,7 +92,6 @@ def unfoldedOverTime(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLeng
             filename = f"Run{runNum}_{conditions}"
             with open(f"../runs/{conditions}/{filename}/{prefix}analysis/nBonds.pkl", "rb") as f:
                 nBonds = pickle.load(f)
-            print(nBonds)
             angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix, simType, strainFraction)
             unfoldedMols = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles, bondsPerAtom, prob, suffix, simType, strainFraction)
             totalMols = [len(unfoldedMols[frame]) for frame in range(len(timesteps))]
@@ -125,6 +124,7 @@ def plotUnfoldedOverTimeStepStrain(unfoldBarrier, refoldBarrier, numRuns, vf, nu
         with open(f"../runs/{conditions}/{prefix}timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f) 
         key = (barrier, suffix)
+        print(len(avUnfold[key]))
         ax.errorbar(timesteps, avUnfold[key] / numMol * 100, yerr = avUnfoldErr[key] / numMol * 100,
         label = f"$E_U$ = {barrier}kT", color = colours[i])
     ax.set_xlabel("simulation frame")

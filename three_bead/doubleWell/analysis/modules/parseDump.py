@@ -166,15 +166,46 @@ def parseStressAndStrain(barrier, refoldBarrier, runNum, vf, numMol, boxLength, 
             timesteps.append(int(info[0]))
 
     for w in range(1, len(length_changes)):
-        strains.append(np.absolute(length_changes[w] - length_changes[w - 1]))
+        strains.append(length_changes[w]/ boxLength)
 
-    plt.plot(timesteps, stresses)
-    plt.show()
-    return
-    
-    
+    print("extracted stress and strain along x..")
+    return stresses, strains
 
+def calcAvStressAndStrain(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType, strainFraction):
+    """takes average of stresses and strains across runs"""
+    allStresses = defaultdict(list)
+    allStrains = defaultdict(list)
+    avStresses = {}
+    avStrains = {}
+    avStressesErr = {}
+    avStrainsErr = {}
+    for i, (barrier, suffix) in enumerate(zip(unfoldBarriers, suffixes)):
+        if simType == "step strain":
+                prefix = f"stepStrain{strainFraction}_"
+        elif simType == "gelation":
+            prefix = ""
+        if bondsPerAtom == 2:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+        else:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+            if prob < 1:
+                conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
+        with open(f"../runs/{conditions}/{prefix}timesteps.pkl", "rb") as f:
+            timesteps = pickle.load(f)
+        for runNum in range(numRuns):
+            filename = f"Run{runNum}_{conditions}"
+            with open(f"../runs/{conditions}/{filename}/{prefix}analysis/stressAndStrain.pkl", "rb") as f:
+                stresses, strains = pickle.load(f)
+            allStresses[barrier].append(stresses)
+            allStrains[barrier].append(strains)
+        avStressesArray = np.array(allStresses[barrier])
+        avStrainsArray = np.array(allStrains[barrier])
+        avStresses[barrier] = avStressesArray.mean(axis = 0)
+        avStrains[barrier] = avStrainsArray.mean(axis = 0)
+        avStressesErr[barrier] = avStressesArray.std(axis = 0)
+        avStrainsErr[barrier] = avStrainsArray.std(axis = 0)
 
+    return avStresses, avStressesErr, avStrains, avStrainsErr
 
 
 
