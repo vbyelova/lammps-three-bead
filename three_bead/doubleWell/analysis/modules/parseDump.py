@@ -161,7 +161,7 @@ def parseStressAndStrain(barrier, refoldBarrier, runNum, vf, numMol, boxLength, 
                 continue
             line = line.strip()
             info = line.rsplit()
-            stresses.append(float(info[1]))
+            stresses.append(float(info[1]) / boxLength**3)
             length_changes.append(float(info[4]))
             timesteps.append(int(info[0]))
 
