@@ -19,23 +19,16 @@ def morseCoeffs(depth, width, r0):
     r0 = position of the minimum 
     """
     alpha = np.log(3 + 2*np.sqrt(2)) / width
+    print(f"pair_coeff * * {depth:.6g} {alpha:.6g} {r0:.6g}")
+
+    fig, ax = plt.subplots()
+    vals = np.arange(0, 15, 0.01)
+    ax.plot(vals, [morsePotential(r, r0, alpha, depth) for r in vals])
+    plt.axhline(y = -0.5 * depth, linestyle = "--")
+    plt.show()
+
     return depth, alpha, r0
 
-
-parDiameter = 2 * 2**(1/6)
-depth = 1.5
-width = 2 * parDiameter
-# make r0 more than half the width
-r0 = 1 * width
-
-d, alpha, r0 = morseCoeffs(depth, width, r0)
-print(f"pair_coeff * * {d:.6g} {alpha:.6g} {r0:.6g}")
-
-fig, ax = plt.subplots()
-vals = np.arange(0, 15, 0.01)
-ax.plot(vals, [morsePotential(r, r0, alpha, d) for r in vals])
-plt.axhline(y = -0.5 * depth, linestyle = "--")
-plt.show()
 
 def writeCoeffFile(depth, width, conditions):
     parDiameter = 2 * 2**(1/6)

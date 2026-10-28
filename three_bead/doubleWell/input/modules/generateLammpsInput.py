@@ -72,12 +72,13 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
 
         f.write(f"run {equilTime}\n")
         f.write(f"reset_timestep 0\n\n")
-        parDiameter = 2 * 2**(1/6)
-        width = parDiameter * width
-        if width > 2:
-            r0 = 1 * width
+        parDiameter = 2**(1/6)
+        if width < 2:
+             r0 = parDiameter 
         else:
-            r0 = 0.5 * width
+             r0 = 2 * parDiameter
+        width = parDiameter * width
+
         depth, alpha, r0 = morseCoeffs(depth, width, r0)
         f.write(f"pair_style morse/smooth/linear 14\n")
         f.write(f"pair_coeff * * {depth} {alpha} {r0}\n\n")
@@ -134,16 +135,12 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
         # more dumps
 
         f.write(f"# dump commands\n\n")
-        f.write(f"undump 1\n")
+        #f.write(f"undump 1\n")
         # f.write(f"reset_timestep 0\n")
-        f.write(f"dump gel all custom 1000 ../output/dump.lammpstrj"
+        f.write(f"dump gel all custom 1000 ../output/gel_dump.lammpstrj"
                 f" id x y z type mol\n")
         f.write(f"dump_modify 1 sort id\n")
         f.write(f"dump_modify 1 every v_s\n\n")
-
-        f.write(f"compute myrdf all rdf {halfLength} 1 1\n")
-        f.write(f"fix rdfstuff all ave/time 1000 1 1000 c_myrdf[*] "
-                f"file ../output/rdf.dat mode vector\n\n")
 
         f.write(f'fix nbondsfile all print v_s "${{allbonds}} " file'
                 f' ../output/nbonds.dat screen no\n')

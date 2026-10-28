@@ -20,12 +20,12 @@ barrierToRefold = 2
 numRuns = 5
 vf = [0.07]
 
-boxLength = 30
+boxLength = 50
 prob = 1 # probability of unfolding
 bondsPerAtom = 2
 
-depth = 0.1
-width = 1
+depth = 1.5
+width = 4
 
 prefix = f"depth{depth}_width{width}_"
 #generate molecule input file
