@@ -13,6 +13,9 @@ import pandas as pd
 
 def calcAvShearModulus(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType, strainFraction):
     """gets out the average stress and strain, uses to calculate shear modulus at end of sim"""
+    allShearModuli = defaultdict(list)
+    avShearModulus = {}
+    avShearModulusErr = {}
     if simType == "step strain":
             prefix = f"stepStrain{strainFraction}_"
     elif simType == "gelation":
@@ -32,7 +35,10 @@ def calcAvShearModulus(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
             avStresses, avStressesErr, avStrains, avStrainsErr = pickle.load(f)
         plt.plot(timesteps, avStresses[barrier])
         plt.show()
-        shearModulus = avStresses[barrier][-1] / avStrains[barrier][-1]
+        for w in range(int(len(timesteps)/2), len(timesteps)):
+            shearModulus = avStresses[barrier][w] / avStrains[barrier][w]
+            allShearModuli[barrier].append(shearModulus)
+        
 
         print(avStresses[barrier][-1], avStrains[barrier][-1])
         print(f"shear modulus in final frame for strain = {strainFraction} and E_U = {barrier}kT: {shearModulus}")
