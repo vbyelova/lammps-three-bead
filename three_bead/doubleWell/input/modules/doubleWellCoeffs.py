@@ -175,3 +175,11 @@ def writeAngleFile(theta0, k2, k3, k4, conditions):
         f.write(f"angle_coeff 1 {theta0} 'k2*(theta - {theta0})^2 + k3*(theta - {theta0})^3 + k4*(theta - {theta0})^4; k2={k2}; k3={k3}; k4={k4}' \n")
         print("written angle coefficients to file!")
     return
+
+def writeEquilAngleFile(theta0, k2, k3, k4, conditions):
+    with open(f"../runs/{conditions}/equilAngleInfo.in", "w") as f:
+        f.write(f"# angle coefficents as calculated \n")
+        f.write(f"angle_style lepton no_offset \n")
+        f.write(f"angle_coeff 1 {theta0} 'k2*(theta - {theta0})^2 + k3*(theta - {theta0})^3 + k4*(theta - {theta0})^4; k2={k2}; k3={k3}; k4={k4}' \n")
+        print("written angle coefficients to file!")
+    return

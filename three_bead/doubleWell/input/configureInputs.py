@@ -24,10 +24,10 @@ boxLength = 30
 prob = 1 # probability of unfolding
 bondsPerAtom = 2
 
-energy = 1
-dist = 0.1
+depth = 0.1
+width = 1
 
-prefix = f"energy{energy}_dist{dist}_"
+prefix = f"depth{depth}_width{width}_"
 #generate molecule input file
 
 for volfrac in vf:
@@ -49,14 +49,16 @@ for volfrac in vf:
             quarticVals = calcDoubleWellCoeffs(barrier, barrierToRefold)
             angle0, k2, k3, k4 = quarticVals[0], quarticVals[1], quarticVals[2], quarticVals[3]
             writeAngleFile(angle0, k2, k3, k4, conditions)
-
+            equilVals = calcDoubleWellCoeffs(100, 2)
+            angle0, k2, k3, k4 = equilVals[0], equilVals[1], equilVals[2], equilVals[3]
+            writeEquilAngleFile(angle0, k2, k3, k4, conditions)
         for filename in files:
             if not os.path.exists(f"../runs/{conditions}/{filename}/input"):
                 os.makedirs(f"../runs/{conditions}/{filename}/input")
                 generateThreeBead(f"../runs/{conditions}/{filename}/input/{filename}.in", numMol, boxLength)
             if not os.path.exists(f"../runs/{conditions}/{filename}/output"):
                 os.makedirs(f"../runs/{conditions}/{filename}/output")
-                generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom, energy, dist)
+                generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom, depth, width)
             if not os.path.exists(f"../runs/{conditions}/{filename}/analysis"):
                 os.makedirs(f"../runs/{conditions}/{filename}/analysis")
 
