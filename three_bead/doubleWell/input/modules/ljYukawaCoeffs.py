@@ -2,6 +2,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.ticker import FormatStrFormatter
+import matplotlib.colors as mcolors
+
 from scipy.optimize import minimize, minimize_scalar, brentq
 from itertools import cycle
 
@@ -81,7 +83,8 @@ params0 = [np.log(0.5), np.log(1.0), np.log(2.0)]
 sigma = 1
 
 parDiameter = 2 * 2**(1/6)
-depth_target = 1.5
+parRadius = 2 ** (1/6)
+depth_target = 1.4
 width_target = 1 * parDiameter
 
 targets = (depth_target, width_target)
@@ -89,8 +92,24 @@ solution = fit(objective, params0, args = (targets, sigma))
 print(solution.fun)
 #solution = minimize(objective, params0, args = (targets, sigma), method = "Nelder-Mead")
 epsilon, prefactor, kappa = np.exp(solution.x[0]), solution.x[1], np.exp(solution.x[2])
-vals = np.arange(0.001, 14, 0.001)
+vals = np.arange(0.001, 5, 0.001)
+# ax = plt.gca()
+# ax.set_ylim(-5, 5)
+# ax.plot(vals, [ljYukawa(val, epsilon, sigma, prefactor, kappa) for val in vals])
+# plt.show()
+
+depth_targets = [0.1, 0.1, 1.5, 1.5]
+width_targets = [1 * parRadius, 4 * parRadius, 1 * parRadius, 4 * parRadius]
+
 ax = plt.gca()
 ax.set_ylim(-5, 5)
-ax.plot(vals, [ljYukawa(val, epsilon, sigma, prefactor, kappa) for val in vals])
+colours = ["pink", "green", "blue", "purple"]
+for i, (w, d) in enumerate(zip(width_targets, depth_targets)):
+    targets = (d, w)
+    solution = fit(objective, params0, args = (targets, sigma))
+    sigma = 1
+    eps, pref, k = np.exp(solution.x[0]), solution.x[1], np.exp(solution.x[2])
+    vals = np.arange(0.001, 5, 0.001)
+    ax.plot(vals, [ljYukawa(val, eps, sigma, pref, k) for val in vals], color = colours[i], label = f"{targets}")
 plt.show()
+    
