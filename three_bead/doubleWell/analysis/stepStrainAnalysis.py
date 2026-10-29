@@ -180,10 +180,10 @@ if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPe
 #     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avCoordination.pkl", "wb") as f:
 #         pickle.dump((avCoordination, avCoordinationErr), f)
 calcAvShearModulus(*manyRunParams)
-if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/shearModuli.pkl"):
-    shearModuli, shearModuliErr = calcAvShearModulus(*manyRunParams)
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/shearModuli.pkl", "wb") as f:
-        pickle.dump((shearModuli, shearModuliErr), f)
+# if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/shearModuli.pkl"):
+#     shearModuli, shearModuliErr = calcAvShearModulus(*manyRunParams)
+#     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/shearModuli.pkl", "wb") as f:
+#         pickle.dump((shearModuli, shearModuliErr), f)
 
 #plotAvBimodalAngle(*manyRunParams)
 # avAllCounts, avAllCountsErr, avAllMeanAngles, avAllMeanAnglesErr, avCorrFuncs, avCorrFuncsErr = calcAvDensityUnfoldedCorr(*manyRunParams)
@@ -199,7 +199,7 @@ if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPe
 #plotBimodalAndDensityUnfoldedCorr(*manyRunParams)
 #plotUnfoldedOverTimeStepStrain(*manyRunParams)
 
-plotShearModuli(*manyRunParams)
+#plotShearModuli(*manyRunParams)
 #plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes)
 #plotTotalInterMol(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom)
 #plotAvPressure(*manyRunParams)
