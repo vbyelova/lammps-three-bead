@@ -20,10 +20,10 @@ from modules.calcRheology import *
 from modules.parallelPercolation import *
 
 # let's get the system data first
-unfoldBarriers = [1, 5]#[1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
-suffixes = ["", ""]#["", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ"]
+unfoldBarriers = [1, 3, 5]#[1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
+suffixes = ["", "", ""]#["", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ"]
 refoldBarrier = 2
-numRuns = 5
+numRuns = 1
 
 vf = 0.07
 numMol = 3939
@@ -32,7 +32,7 @@ bondsPerAtom = 2
 prob = 1
 
 simType = "step strain"
-strainFractions = [0.2]
+strainFractions = [0.05]
 
 for barrier, suffix in zip(unfoldBarriers, suffixes):
     for strainFraction in strainFractions:
@@ -179,10 +179,11 @@ if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPe
 #     avCoordination, avCoordinationErr = plotAvCoordination(*manyRunParams)
 #     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avCoordination.pkl", "wb") as f:
 #         pickle.dump((avCoordination, avCoordinationErr), f)
-
-if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/shearModuli.pkl", "wb") as f:
+calcAvShearModulus(*manyRunParams)
+if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/shearModuli.pkl"):
     shearModuli, shearModuliErr = calcAvShearModulus(*manyRunParams)
-    pickle.dump((shearModuli, shearModuliErr), f)
+    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/shearModuli.pkl", "wb") as f:
+        pickle.dump((shearModuli, shearModuliErr), f)
 
 #plotAvBimodalAngle(*manyRunParams)
 # avAllCounts, avAllCountsErr, avAllMeanAngles, avAllMeanAnglesErr, avCorrFuncs, avCorrFuncsErr = calcAvDensityUnfoldedCorr(*manyRunParams)
@@ -197,7 +198,8 @@ if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPe
 #plotCrosslinkPercentAtPercAndSimEnd(*manyRunParams)
 #plotBimodalAndDensityUnfoldedCorr(*manyRunParams)
 #plotUnfoldedOverTimeStepStrain(*manyRunParams)
-calcAvShearModulus(*manyRunParams)
+
+plotShearModuli(*manyRunParams)
 #plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes)
 #plotTotalInterMol(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom)
 #plotAvPressure(*manyRunParams)
