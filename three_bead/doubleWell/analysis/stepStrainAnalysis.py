@@ -180,7 +180,9 @@ if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPe
 #     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avCoordination.pkl", "wb") as f:
 #         pickle.dump((avCoordination, avCoordinationErr), f)
 
-
+if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/shearModuli.pkl", "wb") as f:
+    shearModuli, shearModuliErr = calcAvShearModulus(*manyRunParams)
+    pickle.dump((shearModuli, shearModuliErr), f)
 
 #plotAvBimodalAngle(*manyRunParams)
 # avAllCounts, avAllCountsErr, avAllMeanAngles, avAllMeanAnglesErr, avCorrFuncs, avCorrFuncsErr = calcAvDensityUnfoldedCorr(*manyRunParams)

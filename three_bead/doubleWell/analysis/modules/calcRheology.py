@@ -14,6 +14,7 @@ import pandas as pd
 def calcAvShearModulus(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType, strainFraction):
     """gets out the average stress and strain, uses to calculate shear modulus at end of sim"""
     allShearModuli = defaultdict(list)
+    allShearModuliErr = defaultdict(list)
     avShearModulus = {}
     avShearModulusErr = {}
     if simType == "step strain":
@@ -37,9 +38,15 @@ def calcAvShearModulus(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
         plt.show()
         for w in range(int(len(timesteps)/2), len(timesteps)):
             shearModulus = avStresses[barrier][w] / avStrains[barrier][w]
+            frameErr = np.abs(shearModulus) * np.sqrt((avStressesErr[barrier][w] / avStresses[barrier][w])**2 + (avStrainsErr[barrier][w] / avStrains[barrier][w])**2)
             allShearModuli[barrier].append(shearModulus)
-        
+            allShearModuliErr[barrier].append(frameErr)
+            print(w, shearModulus)
 
+        shearModuliArray = np.array(allShearModuli[barrier])
+        shearModuliErrArray = np.array(allShearModuliErr[barrier])
+        avShearModulus[barrier] = np.mean(shearModuliArray)
+        avShearModulusErr[barrier] = np.mean(shearModuliErrArray)
         print(avStresses[barrier][-1], avStrains[barrier][-1])
-        print(f"shear modulus in final frame for strain = {strainFraction} and E_U = {barrier}kT: {shearModulus}")
-    return
+        print(f"shear modulus in final frame for strain = {strainFraction} and E_U = {barrier}kT: {avShearModulus[barrier]} +- {avShearModulusErr[barrier]}")
+    return avShearModulus, avShearModulusErr
