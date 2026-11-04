@@ -79,37 +79,49 @@ def fit(objective, params0, args, tol = 1e-12, max_restarts = 50, n_random = 20,
 
 
 
-params0 = [np.log(0.5), np.log(1.0), np.log(2.0)]
-sigma = 1
+# params0 = [np.log(0.5), np.log(1.0), np.log(2.0)]
+# sigma = 1
 
-parDiameter = 2 * 2**(1/6)
-parRadius = 2 ** (1/6)
-depth_target = 1.4
-width_target = 1 * parDiameter
+# parDiameter = 2 * 2**(1/6)
+# parRadius = 2 ** (1/6)
+# depth_target = 1.4
+# width_target = 1 * parDiameter
 
-targets = (depth_target, width_target)
-solution = fit(objective, params0, args = (targets, sigma))
-print(solution.fun)
-#solution = minimize(objective, params0, args = (targets, sigma), method = "Nelder-Mead")
-epsilon, prefactor, kappa = np.exp(solution.x[0]), solution.x[1], np.exp(solution.x[2])
-vals = np.arange(0.001, 5, 0.001)
+# targets = (depth_target, width_target)
+# solution = fit(objective, params0, args = (targets, sigma))
+# print(solution.fun)
+# #solution = minimize(objective, params0, args = (targets, sigma), method = "Nelder-Mead")
+# epsilon, prefactor, kappa = np.exp(solution.x[0]), solution.x[1], np.exp(solution.x[2])
+# vals = np.arange(0.001, 5, 0.001)
 # ax = plt.gca()
 # ax.set_ylim(-5, 5)
 # ax.plot(vals, [ljYukawa(val, epsilon, sigma, prefactor, kappa) for val in vals])
 # plt.show()
 
-depth_targets = [0.1, 0.1, 1.5, 1.5]
-width_targets = [1 * parRadius, 4 * parRadius, 1 * parRadius, 4 * parRadius]
+# depth_targets = [0.1, 0.1, 1.5, 1.5]
+# width_targets = [1 * parRadius, 4 * parRadius, 1 * parRadius, 4 * parRadius]
 
-ax = plt.gca()
-ax.set_ylim(-5, 5)
-colours = ["pink", "green", "blue", "purple"]
-for i, (w, d) in enumerate(zip(width_targets, depth_targets)):
-    targets = (d, w)
-    solution = fit(objective, params0, args = (targets, sigma))
-    sigma = 1
-    eps, pref, k = np.exp(solution.x[0]), solution.x[1], np.exp(solution.x[2])
-    vals = np.arange(0.001, 5, 0.001)
-    ax.plot(vals, [ljYukawa(val, eps, sigma, pref, k) for val in vals], color = colours[i], label = f"{targets}")
-plt.show()
+# ax = plt.gca()
+# ax.set_ylim(-5, 5)
+# colours = ["pink", "green", "blue", "purple"]
+# for i, (w, d) in enumerate(zip(width_targets, depth_targets)):
+#     targets = (d, w)
+#     solution = fit(objective, params0, args = (targets, sigma))
+#     sigma = 2**(1/6)
+#     eps, pref, k = np.exp(solution.x[0]), solution.x[1], np.exp(solution.x[2])
+#     print(eps, pref, k)
+#     vals = np.arange(0.001, 5, 0.001)
     
+#     ax.plot(vals, [ljYukawa(val, eps, sigma, pref, k) for val in vals], color = colours[i], label = f"{targets}")
+# plt.show()
+vals = np.arange(0.001, 10, 0.001)
+
+
+fig, ax = plt.subplots()
+ax.set_ylim(-5, 10)
+ax.plot(vals, [ljYukawa(val, 0.5, 2*2**(1/6), 4, 1.5) for val in vals], label = "shallow, narrow")
+ax.plot(vals, [ljYukawa(val, 0.5, 2*2**(1/6), 4, 0.9) for val in vals], label = "deep, narrow")
+ax.plot(vals, [ljYukawa(val, 0.01, 2.4*2**(1/6), 0.4, 0.1) for val in vals], label = "shallow, wide")
+ax.plot(vals, [ljYukawa(val, 0.02, 2.4*2**(1/6), 1.6, 0.01) for val in vals], label = "deep, wide")
+ax.legend()
+plt.show()

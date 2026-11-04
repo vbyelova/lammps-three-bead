@@ -17,58 +17,62 @@ from modules.generateLammpsInput import *
 barrierToUnfold = [1]
 barrierToRefold = 2
 
-numRuns = 5
+numRuns = 1
 vf = [0.07]
 
-boxLength = 50
-prob = 1 # probability of unfolding
+boxLength = 10
+prob = 0.1 # probability of unfolding
 bondsPerAtom = 2
 
-depth = 1.5
-width = 4
 
-prefix = f"depth{depth}_width{width}_"
+params = {
+    "shallowNarrow_": [0.5, 2**(1/6), 4, 1.5],
+    "deepNarrow_":    [0.5, 2**(1/6), 4, 0.9],
+    "deepWide_":      [0.001, 1.2*2**(1/6), 0.4, 0.1],
+    "shallowWide_":   [0.002, 1.2*2**(1/6), 1.6, 0.01],
+}
 #generate molecule input file
 
-for volfrac in vf:
-    for barrier in barrierToUnfold:
-        numPar = (boxLength**3 * volfrac) / ((1 * 2 **(1 / 6))**3 * (np.pi / 6))
-        numMol = int(numPar / 3) + 1
-        conditions = f"{prefix}unfold{barrier}_refold{barrierToRefold}_Vf{volfrac}_mol{numMol}"
+for prefix, coeff in params.items():
+    for volfrac in vf:
+        for i, barrier in enumerate(barrierToUnfold):
+            numPar = (boxLength**3 * volfrac) / ((1 * 2 **(1 / 6))**3 * (np.pi / 6))
+            numMol = int(numPar / 3) + 1
+            conditions = f"{prefix}unfold{barrier}_refold{barrierToRefold}_Vf{volfrac}_mol{numMol}_prob{prob}"
 
-        files = []
-        for n in range (0, numRuns):
-            filename = f"Run{n}_{conditions}"
-            files.append(filename)    
+            files = []
+            for n in range (0, numRuns):
+                filename = f"Run{n}_{conditions}"
+                files.append(filename)    
 
-        if not os.path.exists("../runs"):
-                os.makedirs("../runs")
+            if not os.path.exists("../runs"):
+                    os.makedirs("../runs")
 
-        if not os.path.exists(f"../runs/{conditions}"):
-            os.makedirs(f"../runs/{conditions}")
-            quarticVals = calcDoubleWellCoeffs(barrier, barrierToRefold)
-            angle0, k2, k3, k4 = quarticVals[0], quarticVals[1], quarticVals[2], quarticVals[3]
-            writeAngleFile(angle0, k2, k3, k4, conditions)
-            equilVals = calcDoubleWellCoeffs(100, 2)
-            angle0, k2, k3, k4 = equilVals[0], equilVals[1], equilVals[2], equilVals[3]
-            writeEquilAngleFile(angle0, k2, k3, k4, conditions)
-        for filename in files:
-            if not os.path.exists(f"../runs/{conditions}/{filename}/input"):
-                os.makedirs(f"../runs/{conditions}/{filename}/input")
-                generateThreeBead(f"../runs/{conditions}/{filename}/input/{filename}.in", numMol, boxLength)
-            if not os.path.exists(f"../runs/{conditions}/{filename}/output"):
-                os.makedirs(f"../runs/{conditions}/{filename}/output")
-                generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom, depth, width)
-            if not os.path.exists(f"../runs/{conditions}/{filename}/analysis"):
-                os.makedirs(f"../runs/{conditions}/{filename}/analysis")
-
-
-        with open(f"../runs/{conditions}/runScripts.py", "w") as f:
-            f.write(f"# run this script from {conditions} to run the simulations.\n")
-            f.write(f"import subprocess\n"
-                    f"import os\n\n")
+            if not os.path.exists(f"../runs/{conditions}"):
+                os.makedirs(f"../runs/{conditions}")
+                quarticVals = calcDoubleWellCoeffs(barrier, barrierToRefold)
+                angle0, k2, k3, k4 = quarticVals[0], quarticVals[1], quarticVals[2], quarticVals[3]
+                writeAngleFile(angle0, k2, k3, k4, conditions)
+                equilVals = calcDoubleWellCoeffs(100, 2)
+                angle0, k2, k3, k4 = equilVals[0], equilVals[1], equilVals[2], equilVals[3]
+                writeEquilAngleFile(angle0, k2, k3, k4, conditions)
             for filename in files:
-                f.write(f"if not os.path.exists(f'../runs/{conditions}/{filename}/input/log.lammps'):\n")
-                f.write(f"\tprint('running simulation {filename}..')\n")
-                f.write(f"\tsubprocess.run(['lmp','-in','in.lammps'], cwd = '{filename}/input')\n\n")
+                if not os.path.exists(f"../runs/{conditions}/{filename}/input"):
+                    os.makedirs(f"../runs/{conditions}/{filename}/input")
+                    generateThreeBead(f"../runs/{conditions}/{filename}/input/{filename}.in", numMol, boxLength)
+                if not os.path.exists(f"../runs/{conditions}/{filename}/output"):
+                    os.makedirs(f"../runs/{conditions}/{filename}/output")
+                    generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom, coeff)
+                if not os.path.exists(f"../runs/{conditions}/{filename}/analysis"):
+                    os.makedirs(f"../runs/{conditions}/{filename}/analysis")
+
+
+            with open(f"../runs/{conditions}/runScripts.py", "w") as f:
+                f.write(f"# run this script from {conditions} to run the simulations.\n")
+                f.write(f"import subprocess\n"
+                        f"import os\n\n")
+                for filename in files:
+                    f.write(f"if not os.path.exists(f'../runs/{conditions}/{filename}/input/log.lammps'):\n")
+                    f.write(f"\tprint('running simulation {filename}..')\n")
+                    f.write(f"\tsubprocess.run(['lmp','-in','in.lammps'], cwd = '{filename}/input')\n\n")
 

@@ -5,16 +5,17 @@ from numpy import random
 from random import randint
 from .morseCoeffs import *
 
-def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom, depth, width):
+def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom, coeff):
     """file to set variables and write out lammps input file for gelation and network growth simulation."""
-    Nsteps = 700000 
-    equilTime = 120000
+    Nsteps = 1000000 
+    equilTime = 150000
     r_cutoff = 1.112462048
     seed = randint(100000, 999999)
     comm = 10
     numPar = numMol * 3
     tstep = 0.001
     halfLength = int(0.5 * boxLength)
+    eps, sigma, prefactor, kappa = coeff
 
     print("writing input file..")
     # write system parameters to file
@@ -38,7 +39,7 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
         f.write(f"variable tstep          equal {tstep}\n")
         f.write(f"variable boxLength      equal lx\n")
         f.write(f"variable r_cutoff       equal {r_cutoff}\n")
-        f.write(f"variable s              equal logfreq3({equilTime * 2},100,{Nsteps})\n")
+        f.write(f"variable s              equal logfreq3(1000,100,{Nsteps})\n")
         f.write(f"variable prob           equal {prob}\n\n")
 
         # now some configuration stuff
@@ -48,6 +49,7 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
         f.write(f"atom_style angle\n\n")
         f.write(f"read_data {filename}.in"
                 f" extra/bond/per/atom {bondsPerAtom} extra/special/per/atom {bondsPerAtom}00\n")
+        f.write(f"set group all image 0 0 0\n")
         f.write(f"log input_log.lammps\n")
         f.write("min_style fire\n\n")
 
@@ -59,37 +61,36 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
         f.write(f"bond_style harmonic\n")
         f.write(f"bond_coeff 1 3 {r_cutoff} #intramolecular\n")
         f.write(f"bond_coeff 2 3 {r_cutoff} #intermolecular\n\n")
-        f.write(f"fix nvelim all nve/limit 1.0\n")
+        f.write(f"fix nvelim all nve/limit 0.1\n")
         f.write(f"fix thermoequil all langevin 1 1 10 {seed}\n\n")
         f.write(f"include ../../equilAngleInfo.in\n")
         f.write(f"comm_modify cutoff {comm}\n\n")
         
-        f.write(f"pair_style soft 1.112462048\n")
-        f.write(f"pair_coeff * * 1\n")
+        f.write(f"pair_style soft 1.\n")
+        f.write(f"pair_coeff * * 10\n")
 
-        f.write(f"minimize 1.0e-4 1.0e-6 1000 10000\n")
-        f.write(f"velocity all create 1 {seed} mom yes rot yes dist gaussian\n\n")
+        f.write(f"velocity all create 1 {seed} mom yes rot yes dist gaussian\n")
+        f.write(f"minimize 1.0e-4 1.0e-6 1000 10000\n\n")
 
         f.write(f"run {equilTime}\n")
         f.write(f"reset_timestep 0\n\n")
-        parDiameter = 2**(1/6)
-        if width < 2:
-             r0 = parDiameter 
-        else:
-             r0 = 2 * parDiameter
-        width = parDiameter * width
 
-        depth, alpha, r0 = morseCoeffs(depth, width, r0)
-        f.write(f"pair_style morse/smooth/linear 14\n")
-        f.write(f"pair_coeff * * {depth} {alpha} {r0}\n\n")
+        f.write(f"pair_style hybrid/overlay lj/cut 10 yukawa {kappa} 10\n")
+        f.write(f"pair_coeff * * lj/cut {eps} {sigma}\n")
+        f.write(f"pair_coeff * * yukawa {prefactor}\n\n")
+        f.write(f"pair_write 1 1 2000 r 0.8 10 ../output/pot_total.txt LJ_Yukawa\n")
 
-        f.write(f"comm_modify cutoff 16.3\n\n")
-        f.write(f"minimize 1.0e-4 1.0e-6 1000 10000\n")
-        f.write(f"velocity all create 1 {seed} mom yes rot yes dist gaussian\n\n")
+        f.write(f"comm_modify cutoff 12\n\n")
+        f.write(f"velocity all create 1 {seed} mom yes dist gaussian\n")
+        f.write(f"minimize 1.0e-4 1.0e-6 1000 10000\n\n")
+        f.write(f"reset_timestep 0 \n\n")
+        f.write(f"set group all image 0 0 0\n")
 
-        f.write(f"dump 1 all custom 1000 ../output/dump.lammpstrj"
+
+        f.write(f"dump equil all custom 1000 ../output/equil.lammpstrj"
                 f" id x y z type mol\n")
-        f.write(f"dump_modify 1 sort id\n\n")
+        f.write(f"dump_modify equil sort id\n\n")
+        f.write(f"dump_modify equil every v_s\n\n")
 
         f.write(f"timestep 0.0001\n")
         f.write(f"run {equilTime}\n")
@@ -102,9 +103,9 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
 
         # now defining main simulation parameters
         f.write(f"# main simulation parameters\n\n")
-        f.write(f"pair_style hybrid/overlay zero 5 lj/cut {r_cutoff}\n")
-        f.write(f"pair_coeff * * lj/cut 1.0 1.0\n")
-        f.write(f"pair_coeff * * zero 5\n\n")
+        # f.write(f"pair_style hybrid/overlay zero 5 lj/cut {r_cutoff}\n")
+        # f.write(f"pair_coeff * * lj/cut 1.0 1.0\n")
+        # f.write(f"pair_coeff * * zero 5\n\n")
 
         f.write(f"include ../../angleInfo.in\n")
         f.write(f"compute angles all angle/local theta\n")
@@ -135,12 +136,13 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
         # more dumps
 
         f.write(f"# dump commands\n\n")
-        #f.write(f"undump 1\n")
-        # f.write(f"reset_timestep 0\n")
-        f.write(f"dump gel all custom 1000 ../output/gel_dump.lammpstrj"
+        f.write(f"undump equil\n")
+        f.write(f"reset_timestep 0\n")
+        f.write(f"dump gel all custom 1000 ../output/gel.lammpstrj"
                 f" id x y z type mol\n")
-        f.write(f"dump_modify 1 sort id\n")
-        f.write(f"dump_modify 1 every v_s\n\n")
+        f.write(f"dump_modify gel sort id\n")
+        f.write(f"dump_modify gel every v_s\n\n")
+        f.write(f"dump_modify gel first yes \n\n")
 
         f.write(f'fix nbondsfile all print v_s "${{allbonds}} " file'
                 f' ../output/nbonds.dat screen no\n')
@@ -165,13 +167,5 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
         f.write(f"write_restart restart.gel")
 
     print(f"file written to ../runs/{conditions}/{filename}")
-
-def prestructure(conditions, filename, boxLength, prob, bondsPerAtom):
-    """writes lammps input file for simulations with variable equilibration conditions.
-        Requirements:
-                - equilibration LJ / square well variable 
-                - gelation LJ as truncated repulsive (represents lamp switch on)
-                - V_f as 7%
-                - inclusion of unfolding as that's very nice for dimer monomerization"""
 
 
