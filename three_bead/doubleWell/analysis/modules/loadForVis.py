@@ -80,8 +80,62 @@ def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particle
     # framesToMp4(f"Run{runNum}_Vf{vf}_mol{numMol}.mp4", framesDir, fps = 10)
     return
 
-def loadBondForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particles, unfoldedMols, angles, bondsPerAtom, prob, suffix, simType, strainFraction):
+
+def loadBondForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particles, bondsPerAtom, prob, suffix, simType, strainFraction):
     """loads in bond information and visualises them as cylinders"""
+    if simType == "step strain":
+        prefix = f"stepStrain{strainFraction}_"
+    elif simType == "gelation":
+        prefix = ""
+    pymol.finish_launching()
+    parRadius = 2 ** (1/6) * 0.4
+    if bondsPerAtom == 2:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
+    else:
+        conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+        if prob < 1:
+            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
+        
+    filename = f"Run{runNum}_{conditions}"
+    with open(f"../runs/{conditions}/{prefix}timesteps.pkl", "rb") as f:
+        timesteps = pickle.load(f)
+    frames = len(timesteps)
+    with open(f"../runs/{conditions}/{filename}/{prefix}analysis/bondInfo.pkl", "rb") as f:
+        bondInfo = pickle.load(f)
+    allBonds = np.vstack(list(bondInfo.values()))
+    mags = np.linalg.norm(allBonds[:, 3:6], axis=1)
+    minForce, maxForce = mags.min(), mags.max()
+    for frame in range(frames):
+        frame_cgo = []
+        bonds = bondInfo[frame]
+        for b in range(len(bonds)):
+            bond = bonds[b]
+            atom1index = int(bond[1]) - 1
+            atom2index = int(bond[2]) - 1
+            largestBondForce = np.linalg.norm(bond[3:6])
+            colour = angleToColour(largestBondForce, minForce, maxForce)
+
+            x1 = particles[atom1index].properties[frame, 1]
+            y1 = particles[atom1index].properties[frame, 2]
+            z1 = particles[atom1index].properties[frame, 3]
+
+            x2 = particles[atom2index].properties[frame, 1]
+            y2 = particles[atom2index].properties[frame, 2]
+            z2 = particles[atom2index].properties[frame, 3]            
+            # if 10 < z < 25:
+            frame_cgo.extend([cgo.CYLINDER, x1, y1, z1, x2, y2, z2, 0.5, *colour, *colour])
+        # for pore in pores:
+        #     x, y, z = pore["pos"]
+        #     poreRadius = pore["size"]
+
+        #     r, g, b = 0, 0.5, 0
+        #     frame_cgo.extend([cgo.COLOR, r, g, b, cgo.SPHERE, x, y, z, poreRadius])
+        cmd.load_cgo(frame_cgo, f"angle_unfold{barrier}_Run{runNum}_Vf{vf}_mol{numMol}", state = frame + 1)
+
+    cmd.zoom("all", buffer = 5)
+    cmd.bg_color("white")
+    cmd.set("ray_opaque_background", 1)
+    return
 
 def loadCoordVis(barrier, refoldBarrier, runNum, vf, numMol, particles, timesteps, parCoordination):
     """visualises trajectories in pymol and colours according to extent of molecule coordination."""

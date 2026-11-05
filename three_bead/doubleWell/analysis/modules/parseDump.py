@@ -27,44 +27,30 @@ def parseSystemData(name, simType):
         equilTime = int(config.get("systemData", "equilTime"))
     return boxLength, Npar, Nsteps, Nwrite, equilTime
 
-def readData(name, numStep, everyN, numPar, equilTime = 0):
-    """ A function to read in data from a lammps dump file and parse it into arrays."""
-    # initialise counters
-    frame = 0
-    counter = 0
-    cols = 6
+def readData(name, numStep, everyN, numPar, equilTime=0, cols=6):
+    """Read a LAMMPS dump file into per-particle arrays."""
     timesteps = []
-
-    pattern = r"\d+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+" # digits sandwiched by spaces
-
-    # read line by line to see if data or other stuff
-    with open(name, 'r') as f:
-        for line in f:
-            if "ITEM: TIMESTEP" in line:
-                timestep = (next(f)).split()[0]
-                timesteps.append(int(timestep))
-
-    particles = [Particle() for n in range(numPar)]
-    for p in range(numPar):
-        particles[p].properties = np.zeros((len(timesteps), cols))
-
-
     with open(name) as f:
         for line in f:
-            if re.search(pattern, line):
-                counter += 1
-                parts = line.split()
-                num = int(parts[0]) - 1 # change to 0 indexing for python
+            if line.startswith("ITEM: TIMESTEP"):
+                timesteps.append(int(next(f)))
 
-    # split up line and save into correct slot in array
-                for x in range(0, cols):
-                    particles[num].properties[frame, 0 + x] = parts[x]
+    particles = [Particle() for _ in range(numPar)]
+    for p in particles:
+        p.properties = np.zeros((len(timesteps), cols))
 
-    # loop once all particles have been accounted for
-                if counter == numPar:
-                    frame += 1
-                    counter = 0
-                  
+    frame = -1
+    with open(name) as f:
+        for line in f:
+            if line.startswith("ITEM: TIMESTEP"):
+                frame += 1
+            elif line.startswith("ITEM: ATOMS"):
+                #print("columns:", line.split()[2:])   
+                for _ in range(numPar):
+                    parts = next(f).split()
+                    num = int(parts[0]) - 1
+                    particles[num].properties[frame, :] = [float(x) for x in parts[:cols]]
+
     print("dump file processed..")
     return particles, timesteps
 

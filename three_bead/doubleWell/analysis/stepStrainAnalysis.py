@@ -23,7 +23,7 @@ from modules.parallelPercolation import *
 unfoldBarriers = [1, 3, 5]#[1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
 suffixes = ["", "", ""]#["", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ"]
 refoldBarrier = 2
-numRuns = 1
+numRuns = 2
 
 vf = 0.07
 numMol = 3939
@@ -32,9 +32,10 @@ bondsPerAtom = 2
 prob = 1
 
 simType = "step strain"
-strainFractions = [0.05]
+strainFractions = [0.05, 0.2]
 
 for barrier, suffix in zip(unfoldBarriers, suffixes):
+    manyStrainParams = (unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType, strainFractions)
     for strainFraction in strainFractions:
         manyRunParams = (unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType, strainFraction)
         if bondsPerAtom == 2:
@@ -160,15 +161,21 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
 #     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avNewUnfoldedMol.pkl", "wb") as f:
 #         pickle.dump((avNewUnfoldedMol, avNewUnfoldedMolErr), f)
 
-if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/unfoldedOverTime.pkl"):
-    avUnfoldOverTime, avUnfoldOverTimeErr = unfoldedOverTime(*manyRunParams)
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/unfoldedOverTime.pkl", "wb") as f:
-        pickle.dump((avUnfoldOverTime, avUnfoldOverTimeErr), f)
+for strainFraction in strainFractions:
+    if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/unfoldedOverTime.pkl"):
+        avUnfoldOverTime, avUnfoldOverTimeErr = unfoldedOverTime(*manyRunParams)
+        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/unfoldedOverTime.pkl", "wb") as f:
+            pickle.dump((avUnfoldOverTime, avUnfoldOverTimeErr), f)
 
-if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avStressAndStrain.pkl"):
-    avStresses, avStressesErr, avStrains, avStrainsErr = calcAvStressAndStrain(*manyRunParams)
-    with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avStressAndStrain.pkl", "wb") as f:
-        pickle.dump((avStresses, avStressesErr, avStrains, avStrainsErr), f)
+    if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avStressAndStrain.pkl"):
+        avStresses, avStressesErr, avStrains, avStrainsErr = calcAvStressAndStrain(*manyRunParams)
+        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avStressAndStrain.pkl", "wb") as f:
+            pickle.dump((avStresses, avStressesErr, avStrains, avStrainsErr), f)
+
+    if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/shearModuli.pkl"):
+        avShearModuli, avShearModuliErr = calcAvShearModulus(*manyRunParams)
+        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/shearModuli.pkl", "wb") as f:
+            pickle.dump((avShearModuli, avShearModuliErr), f)
 
 # if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/{prefix}data/avPressure.pkl"):
 #     avPressure, avPressureErr = calcAvPressure(*manyRunParams)
@@ -179,7 +186,7 @@ if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPe
 #     avCoordination, avCoordinationErr = plotAvCoordination(*manyRunParams)
 #     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avCoordination.pkl", "wb") as f:
 #         pickle.dump((avCoordination, avCoordinationErr), f)
-calcAvShearModulus(*manyRunParams)
+plotShearModuli(*manyStrainParams)
 # if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/shearModuli.pkl"):
 #     shearModuli, shearModuliErr = calcAvShearModulus(*manyRunParams)
 #     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/shearModuli.pkl", "wb") as f:
