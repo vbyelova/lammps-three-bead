@@ -81,7 +81,8 @@ def calcDoubleWellCoeffs(barrierToUnfold, barrierToRefold):
     counter = 0
 
     print("Finding optimal coefficients for quartic function...")
-    results = minimize(objective, initialGuess, args = (theta_min1, theta_min2, barrierToUnfold, barrierToRefold), method = "Nelder-Mead", options={'maxiter':1000})
+    results = minimize(objective, initialGuess, args = (theta_min1, theta_min2,
+                                                        barrierToUnfold, barrierToRefold), method = "Nelder-Mead", options={'maxiter':1000})
     theta0, k2, k3, k4 = results.x[0], results.x[1], results.x[2], results.x[3]
     print
     energy = []
