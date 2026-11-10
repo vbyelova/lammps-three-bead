@@ -55,7 +55,6 @@ for volfrac in vf:
             if not os.path.exists(f"../runs/{conditions}/{filename}/output"):
                 os.makedirs(f"../runs/{conditions}/{filename}/output")
                 generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom)
-                shearingInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom)
             if not os.path.exists(f"../runs/{conditions}/{filename}/analysis"):
                 os.makedirs(f"../runs/{conditions}/{filename}/analysis")
 

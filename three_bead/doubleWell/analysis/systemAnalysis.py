@@ -95,10 +95,10 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
             with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "wb") as f:
                 pickle.dump(bondInfo, f)
 
-        # if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/densityUnfoldedCorr.pkl"):
-        #     meanCorr = densityUnfoldedCorrelation(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix)
-        #     with open(f"../runs/{conditions}/{filename}/analysis/densityUnfoldedCorr.pkl", "wb") as f:
-        #         pickle.dump(meanCorr, f)
+        if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/densityUnfoldedCorr.pkl"):
+            meanCorr = densityUnfoldedCorrelation(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix)
+            with open(f"../runs/{conditions}/{filename}/analysis/densityUnfoldedCorr.pkl", "wb") as f:
+                pickle.dump(meanCorr, f)
 
         if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/angleDist.pkl"):
             hist, bins, finalFrameAngles = bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix)
@@ -171,19 +171,16 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
 
 
 #plotAvBimodalAngle(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
-# avAllCounts, avAllCountsErr, avAllMeanAngles, avAllMeanAnglesErr, avCorrFuncs, avCorrFuncsErr = calcAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier,
-#                                                                                                                            numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
-# with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/data/densityUnfoldedCorr.pkl", "wb") as f:
-#    pickle.dump((avAllCounts, avAllCountsErr, avAllMeanAngles, avAllMeanAnglesErr, avCorrFuncs, avCorrFuncsErr), f)
-#plotAvDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
+
 #plotAverageFractalDim(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob)
 #avBoxCounting(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
 #plotTogetherShifted(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength)
 #plotTogether(unfoldBarriers, refoldBarrier, numRuns, numMol ,vf, boxLength)
 #anglePopulation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
 #plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes)
-plotCrosslinkPercentAtPercAndSimEnd(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes)
-#plotBimodalAndDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
+#plotCrosslinkPercentAtPercAndSimEnd(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes)
+
+plotBimodalAndDensityUnfoldedCorr(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
 #plotUnfoldedOverTime(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
 #plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes)
 #plotTotalInterMol(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom)
