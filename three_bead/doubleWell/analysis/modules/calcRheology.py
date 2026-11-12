@@ -53,7 +53,8 @@ def plotShearModuli(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLengt
     colours = ["pink", "plum", "dodgerblue"]
     fig, ax = plt.subplots()
 
-    for i, strainFraction in enumerate(strainFractions):
+
+    for i, barrier in enumerate(unfoldBarriers):
         if simType == "step strain":
             prefix = f"stepStrain{strainFraction}_"
         elif simType == "gelation":
