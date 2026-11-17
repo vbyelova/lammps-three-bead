@@ -69,8 +69,8 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
 
         angles = calcAngles(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix, simType, strainFraction)
         unfoldedMols = unfoldedMolecules(barrier, refoldBarrier, runNum, vf, numMol, angles, bondsPerAtom, prob, suffix, simType, strainFraction)     
-        #loadForceVis(barrier, refoldBarrier, runNum, vf, numMol,boxLength, particles, unfoldedMols, angles, bondsPerAtom, prob, suffix, simType, strainFraction)
-        loadBondForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particles, bondsPerAtom, prob, suffix, simType, strainFraction)
+        loadForceVis(barrier, refoldBarrier, runNum, vf, numMol,boxLength, particles, unfoldedMols, angles, bondsPerAtom, prob, suffix, simType, strainFraction)
+        #loadBondForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particles, bondsPerAtom, prob, suffix, simType, strainFraction)
 #parCoordination = particleCoordination(barrier, refoldBarrier, runNum, vf, numMol, nBonds, bondInfo, timesteps)
 #loadCoordVis(barrier, refoldBarrier, runNum, vf, numMol, particles, timesteps, parCoordination)
 

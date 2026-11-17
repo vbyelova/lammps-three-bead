@@ -33,10 +33,11 @@ prob = 1
 
 simType = "step strain"
 strainFractions = [0.05, 0.2]
+manyStrainParams = (unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType, strainFractions)
 
 for barrier, suffix in zip(unfoldBarriers, suffixes):
-    manyStrainParams = (unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType, strainFractions)
     for strainFraction in strainFractions:
+        prefix = f"stepStrain{strainFraction}_"
         manyRunParams = (unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, simType, strainFraction)
         if bondsPerAtom == 2:
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
@@ -44,7 +45,7 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
             conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
             if prob < 1:
                 conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
-        prefix = f"stepStrain{strainFraction}_"
+    
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
             systemData = parseSystemData(f"../runs/{conditions}/{filename}/{prefix}output/systemData.txt", simType)
@@ -117,7 +118,22 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
             # if not os.path.exists(f"../runs/{conditions}/{filename}/{prefix}analysis/percDims.pkl"):
             #     with open(f"../runs/{conditions}/{filename}/{prefix}analysis/percDims.pkl", "wb") as f:
             #         pickle.dump(percDims, f)
-            
+                
+        if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/unfoldedOverTime.pkl"):
+            avUnfoldOverTime, avUnfoldOverTimeErr = unfoldedOverTime(*manyRunParams)
+            with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/unfoldedOverTime.pkl", "wb") as f:
+                pickle.dump((avUnfoldOverTime, avUnfoldOverTimeErr), f)
+
+        if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avStressAndStrain.pkl"):
+            avStresses, avStressesErr, avStrains, avStrainsErr = calcAvStressAndStrain(*manyRunParams)
+            with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avStressAndStrain.pkl", "wb") as f:
+                pickle.dump((avStresses, avStressesErr, avStrains, avStrainsErr), f)
+
+        if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/shearModuli.pkl"):
+            avShearModuli, avShearModuliErr = calcAvShearModulus(*manyRunParams)
+            with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/shearModuli.pkl", "wb") as f:
+                pickle.dump((avShearModuli, avShearModuliErr), f)
+                
             
 # if not os.path.exists(f"../runs/boxLengtsh{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/atPercFractalDims.pkl"):
 #     atPercFinalFractalDims, atPercFinalFractalDimsError, atPercCorrLength, atPercCorrLengthErr = (
@@ -161,21 +177,6 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
 #     with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avNewUnfoldedMol.pkl", "wb") as f:
 #         pickle.dump((avNewUnfoldedMol, avNewUnfoldedMolErr), f)
 
-for strainFraction in strainFractions:
-    if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/unfoldedOverTime.pkl"):
-        avUnfoldOverTime, avUnfoldOverTimeErr = unfoldedOverTime(*manyRunParams)
-        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/unfoldedOverTime.pkl", "wb") as f:
-            pickle.dump((avUnfoldOverTime, avUnfoldOverTimeErr), f)
-
-    if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avStressAndStrain.pkl"):
-        avStresses, avStressesErr, avStrains, avStrainsErr = calcAvStressAndStrain(*manyRunParams)
-        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/avStressAndStrain.pkl", "wb") as f:
-            pickle.dump((avStresses, avStressesErr, avStrains, avStrainsErr), f)
-
-    if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/shearModuli.pkl"):
-        avShearModuli, avShearModuliErr = calcAvShearModulus(*manyRunParams)
-        with open(f"../runs/boxLength{boxLength}/vf{vf}/bondsPerAtom{bondsPerAtom}/prob{prob}/{prefix}data/shearModuli.pkl", "wb") as f:
-            pickle.dump((avShearModuli, avShearModuliErr), f)
 
 # if not os.path.exists(f"../runs/boxLength{boxLength}/vf{vf}/{prefix}data/avPressure.pkl"):
 #     avPressure, avPressureErr = calcAvPressure(*manyRunParams)
