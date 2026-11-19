@@ -61,17 +61,19 @@ def boxCounting(filename, boxLength, timesteps, percDims, atPerc):
     print("voxels size and number of particles per voxel: ", totalUniqueVoxels)
     return np.array(totalUniqueVoxels)
         
-def avBoxCounting(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes):
+def avBoxCounting(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, prefix):
     """averages the counts produced in boxCounting and plots them together. Takes the fractal dimension and
         correlation length from the average."""
     for i, (barrier, suffix) in enumerate(zip(unfoldBarriers, suffixes)):
         allUniqueCounts = []
         if bondsPerAtom == 2:
-            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
-        else:
-            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+            conditions = f"{prefix}unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
             if prob < 1:
-                conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
+                conditions = f"{prefix}unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_prob{prob}{suffix}"
+        else:
+            conditions = f"{prefix}unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+            if prob < 1:
+                conditions = f"{prefix}unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
 
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
             timesteps = pickle.load(f)
@@ -109,14 +111,16 @@ def avBoxCounting(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength,
         plt.clf()
     return
 
-def calcFractalDimension(unfoldBarrier, refoldBarrier, runNum, vf, numMol, totalUniqueVoxels, boxLength, percDims, atPerc, bondsPerAtom, prob, suffix):
+def calcFractalDimension(unfoldBarrier, refoldBarrier, runNum, vf, numMol, totalUniqueVoxels, boxLength, percDims, atPerc, bondsPerAtom, prob, suffix, prefix):
     """calculates the fractal dimension for a single run using a box counting algorithm"""
     if bondsPerAtom == 2:
-        conditions = f"unfold{unfoldBarrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
-    else:
-        conditions = f"unfold{unfoldBarrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+        conditions = f"{prefix}unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
         if prob < 1:
-            conditions = f"unfold{unfoldBarrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
+            conditions = f"{prefix}unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_prob{prob}{suffix}"
+    else:
+        conditions = f"{prefix}unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+        if prob < 1:
+            conditions = f"{prefix}unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
     filename = f"Run{runNum}_{conditions}"
     with open(f"../runs/{conditions}/timesteps.pkl", "rb") as f:
         timesteps = pickle.load(f)
@@ -149,7 +153,7 @@ def calcFractalDimension(unfoldBarrier, refoldBarrier, runNum, vf, numMol, total
     return 2, np.abs(model.slopes[1]), breaks[1]
 
 
-def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, atPerc, bondsPerAtom, prob, suffixes):
+def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, atPerc, bondsPerAtom, prob, suffixes, prefix):
     """finds the fractal dimension for each run for each unfolding barrier and also calculates the average
         correlation length. Can find this for either at percolation point or in final frame of sim."""
 
@@ -168,11 +172,13 @@ def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
         if suffix != "":
             continue
         if bondsPerAtom == 2:
-            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
-        else:
-            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+            conditions = f"{prefix}unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
             if prob < 1:
-                conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
+                conditions = f"{prefix}unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_prob{prob}{suffix}"
+        else:
+            conditions = f"{prefix}unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+            if prob < 1:
+                conditions = f"{prefix}unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
         with open(f"../runs/{conditions}/timesteps.pkl", "rb") as t:
             timesteps = pickle.load(t)
         validRuns = 0
@@ -185,7 +191,7 @@ def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
 
             for runNum in range(numRuns):
                 filename = f"Run{runNum}_{conditions}"
-                percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix)
+                percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix, prefix)
                 if atPerc == True and 3 not in percDims:
                     print(f"{conditions} run {runNum} did not percolate, skipping" )
                     with open(f"../runs/{conditions}/analysisNotes.txt", "w") as s:
@@ -197,7 +203,7 @@ def findAllFractalDims(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLe
                 totalUniqueVoxels = boxCounting(f"../runs/{conditions}/{filename}/analysis/particleTraj.pkl",
                                                 boxLength, timesteps, percDims, atPerc)
                 dimsAndBreak = calcFractalDimension(barrier, refoldBarrier, runNum, vf, numMol, 
-                                                    totalUniqueVoxels, boxLength, percDims, atPerc, bondsPerAtom, prob, suffix)
+                                                    totalUniqueVoxels, boxLength, percDims, atPerc, bondsPerAtom, prob, suffix, prefix)
                 if dimsAndBreak[0] == 2:
                     df = dimsAndBreak[1]
                     breakpoint = dimsAndBreak[2]

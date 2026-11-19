@@ -78,7 +78,7 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
         f.write(f"pair_style hybrid/overlay lj/cut 10 yukawa {kappa} 10\n")
         f.write(f"pair_coeff * * lj/cut {eps} {sigma}\n")
         f.write(f"pair_coeff * * yukawa {prefactor}\n\n")
-        f.write(f"pair_write 1 1 2000 r 0.8 10 ../output/pot_total.txt LJ_Yukawa\n")
+        f.write(f"pair_write 1 1 200 r 0.8 10 ../output/pot_total.txt LJ_Yukawa\n")
 
         f.write(f"comm_modify cutoff 12\n\n")
         f.write(f"velocity all create 1 {seed} mom yes dist gaussian\n")

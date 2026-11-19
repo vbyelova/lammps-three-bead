@@ -19,15 +19,15 @@ from modules.calcPorosity import *
 from modules.parallelPercolation import *
 
 # let's get the system data first
-unfoldBarriers = [1, 2, 3, 4, 5]#[1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
-suffixes = ["", "", "", "", ""]#["", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ"]
+unfoldBarriers = [1]#[1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
+suffixes = [""]#["", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ", "", "NOPERCOLATIONNOLJ"]
 refoldBarrier = 2
-numRuns = 10
+numRuns = 1
 vf = 0.07
-numMol = 31512
-boxLength = 100
+numMol = 32
+boxLength = 10
 bondsPerAtom = 2
-prob = 1
+prob = 0.1
 
 params = {
     "shallowNarrow_": [0.5, 2**(1/6), 4, 1.5],
@@ -38,12 +38,14 @@ params = {
 for prefix, coeff in params.items():
     for barrier, suffix in zip(unfoldBarriers, suffixes):
         if bondsPerAtom == 2:
-            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
-        else:
-            conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+            conditions = f"{prefix}unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}{suffix}"
             if prob < 1:
-                conditions = f"unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
-        manyRunParams = (unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes)
+                conditions = f"{prefix}unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_prob{prob}{suffix}"
+        else:
+            conditions = f"{prefix}unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}{suffix}"
+            if prob < 1:
+                conditions = f"{prefix}unfold{barrier}_refold{refoldBarrier}_Vf{vf}_mol{numMol}_bondsPerAtom{bondsPerAtom}_prob{prob}{suffix}"
+        manyRunParams = (unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, bondsPerAtom, prob, suffixes, prefix)
         for runNum in range(numRuns):
             filename = f"Run{runNum}_{conditions}"
             systemData = parseSystemData(f"../runs/{conditions}/{filename}/output/systemData.txt")
@@ -98,7 +100,7 @@ for prefix, coeff in params.items():
             
             # extract bond information e.g. bonded pairs, forces etc
             if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl"):
-                bondInfo = parseBondInfo(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix)
+                bondInfo = parseBondInfo(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, prefix)
                 with open(f"../runs/{conditions}/{filename}/analysis/bondInfo.pkl", "wb") as f:
                     pickle.dump(bondInfo, f)
 
@@ -108,10 +110,18 @@ for prefix, coeff in params.items():
             #         pickle.dump(meanCorr, f)
 
             if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/angleDist.pkl"):
-                hist, bins, finalFrameAngles = bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix)
+                hist, bins, finalFrameAngles = bimodalAngle(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix, prefix)
                 with open(f"../runs/{conditions}/{filename}/analysis/angleDist.pkl", "wb") as f:
                     pickle.dump((hist, bins, finalFrameAngles), f)
 
+
+        with open(f"../runs/{conditions}/{filename}/output/pot_total.txt") as f:
+            data = np.loadtxt(f, skiprows = 6, max_rows = 2000)
+            plt.plot(data[:, 1], data[:, 2], label=f"{prefix}")
+plt.ylim(-2, 5)
+plt.legend()
+plt.show()
+                
             # percDims = getPercDims(barrier, refoldBarrier, runNum, vf, numMol, bondsPerAtom, prob, suffix)
             # if not os.path.exists(f"../runs/{conditions}/{filename}/analysis/percDims.pkl"):
             #     with open(f"../runs/{conditions}/{filename}/analysis/percDims.pkl", "wb") as f:
@@ -188,7 +198,7 @@ for prefix, coeff in params.items():
 #plotTogether(unfoldBarriers, refoldBarrier, numRuns, numMol ,vf, boxLength)
 #anglePopulation(*manyRunParams)
 #plotAvCoordination(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes)
-plotCrosslinkPercentAtPercAndSimEnd(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes)
+#plotCrosslinkPercentAtPercAndSimEnd(unfoldBarriers, refoldBarrier, numRuns, numMol, vf, boxLength, bondsPerAtom, prob, suffixes)
 #plotBimodalAndDensityUnfoldedCorr(*manyRunParams)
 #plotUnfoldedOverTime(*manyRunParams)
 #plotAvPercolation(unfoldBarriers, refoldBarrier, numRuns, vf, numMol, boxLength, suffixes)
