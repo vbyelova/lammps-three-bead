@@ -79,10 +79,15 @@ for barrier, suffix in zip(unfoldBarriers, suffixes):
                 with open(f"../runs/{conditions}/{filename}/{prefix}analysis/particleTraj.pkl", "wb") as f:
                     pickle.dump(particles, f)
 
+
                 if not os.path.exists(f"../runs/{conditions}/{prefix}timesteps.pkl"):
                     with open(f"../runs/{conditions}/{prefix}timesteps.pkl", "wb") as f:
                         pickle.dump(timesteps, f)
 
+            if not os.path.exists(f"../runs/{conditions}/{filename}/{prefix}analysis/xBounds.pkl"):
+                moddedX = readBoxDims(f"../runs/{conditions}/{filename}/{prefix}output/dump.lammpstrj")
+                with open(f"../runs/{conditions}/{filename}/{prefix}analysis/xBounds.pkl", "wb") as f:
+                    pickle.dump(moddedX, f)
             # if not os.path.exists(f"../runs/{conditions}/{filename}/{prefix}analysis/coordination.pkl"):
             #     coord = coordination(*singleRunParams)
             #     with open(f"../runs/{conditions}/{filename}/{prefix}analysis/coordination.pkl", "wb") as f:

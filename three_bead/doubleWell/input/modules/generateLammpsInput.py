@@ -69,9 +69,9 @@ def generateLammpsInput(conditions, filename, boxLength, numMol, prob, bondsPerA
         f.write(f"minimize 1.0e-4 1.0e-6 1000 10000\n")
         f.write(f"velocity all create 1 {seed} mom yes rot yes dist gaussian\n\n")
 
-        f.write(f"dump 1 all custom 1000 ../output/dump.lammpstrj"
-                f" id x y z type mol\n")
-        f.write(f"dump_modify 1 sort id\n\n")
+        # f.write(f"dump 1 all custom 1000 ../output/dump.lammpstrj"
+        #         f" id x y z type mol\n")
+        # f.write(f"dump_modify 1 sort id\n\n")
 
         f.write(f"timestep 0.0001\n\n")
 
@@ -165,7 +165,7 @@ def prestructure(conditions, filename, boxLength, prob, bondsPerAtom):
 def stepStrainInput(conditions, filename, boxLength, numMol, prob, bondsPerAtom, strainFraction):
     """writes lammps input file for step strain simulations, runs based on restart file. """
     Nsteps =  50000
-    Nwrite = 1000
+    Nwrite = 5000
     r_cutoff = 1.112462048
     seed = randint(100000, 999999)
     comm = 10

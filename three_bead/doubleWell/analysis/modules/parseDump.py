@@ -54,6 +54,22 @@ def readData(name, numStep, everyN, numPar, equilTime=0, cols=6):
     print("dump file processed..")
     return particles, timesteps
 
+def readBoxDims(name):
+    """extract modified x boundaries"""
+    moddedX = []
+    with open(name) as f:
+            for line in f:
+                if line.startswith("ITEM: BOX BOUNDS"):
+                    parts = next(f).split()
+                    xlo = float(parts[0])
+                    xhi = float(parts[1])
+                    moddedX.append([xlo, xhi])
+                else:
+                    continue
+    return moddedX
+
+
+
 def parseBondInfo(barrier, refoldBarrier, runNum, vf, numMol, boxLength, bondsPerAtom, prob, suffix, simType, strainFraction):
     """gets stress tensor information for each bond as fx, fy, fz, dx, dy and dz."""
     if simType == "step strain":

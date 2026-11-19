@@ -80,6 +80,53 @@ def loadForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particle
     # framesToMp4(f"Run{runNum}_Vf{vf}_mol{numMol}.mp4", framesDir, fps = 10)
     return
 
+def periodicCylinder(x1, y1, z1, x2, y2, z2, boxLength, moddedX, frame):
+    """A function that takes in a bond that crosses a periodic boundary and draws it as two
+        separate cylinders."""
+
+    # this is how much the x axis boundary extends with step strain in +ve direction
+    dx = moddedX[frame][1] - boxLength
+    
+    r1 = np.array([x1, y1, z1])
+    r2 = np.array([x2, y2, z2])
+    dr = r2 - r1
+    dr -= boxLength * np.round(dr / boxLength)
+    cylinderEnd = r1 + dr
+    intersectFracs = [0, 1]
+
+    # check which dimension has overlapping bond
+    for dim in range(3):
+        if dr[dim] == 0:
+            continue
+        if dr[dim] > 0:
+            boundary = 0.5 * boxLength
+        else:
+            boundary = -0.5 * boxLength
+        # get where the bond crosses the boundary as a fraction of bond length
+        intersectsAt = (boundary - r1[dim]) / dr[dim]
+        if 0 < intersectsAt < 1:
+            intersectFracs.append(intersectsAt)
+    intersectFracs = sorted(set(intersectFracs))
+ 
+    cylinderParts = []
+    for i in range(len(intersectFracs) - 1):
+        part1 = r1 + intersectFracs[i] + dr
+        part2 = r1 + intersectFracs[i + 1] + dr
+        middle = (part1 + part2) / 2
+        part1 -= boxLength * np.floor((middle + 0.5 * boxLength) / boxLength)
+        part2 -= boxLength * np.floor((middle + 0.5 * boxLength) / boxLength)
+
+        for part in part1, part2:
+        #    if part[0] doesn't fit in the original boxlength
+            if part[0] > 0.5 * boxLength:
+        #        get height of particle as a fraction of box size
+        #        get the change in xy at this timestep
+        #        add dxy * fraction of part[1] / boxlength to part[0] in negative part[0]
+        #        add dxy - (dxy * fraction of part[1] / boxlength) to part[0] in positive part[0]       
+
+
+        cylinderParts.append((part1, part2))
+    return cylinderParts
 
 def loadBondForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, particles, bondsPerAtom, prob, suffix, simType, strainFraction):
     """loads in bond information and visualises them as cylinders"""
@@ -102,6 +149,8 @@ def loadBondForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, part
     frames = len(timesteps)
     with open(f"../runs/{conditions}/{filename}/{prefix}analysis/bondInfo.pkl", "rb") as f:
         bondInfo = pickle.load(f)
+    with open(f"../runs/{conditions}/{filename}/{prefix}analysis/xBounds.pkl", "rb") as f:
+        moddedX = pickle.load(f)
     allBonds = np.vstack(list(bondInfo.values()))
     mags = np.linalg.norm(allBonds[:, 3:6], axis=1)
     minForce, maxForce = mags.min(), mags.max()
@@ -123,7 +172,13 @@ def loadBondForceVis(barrier, refoldBarrier, runNum ,vf, numMol, boxLength, part
             y2 = particles[atom2index].properties[frame, 2]
             z2 = particles[atom2index].properties[frame, 3]            
             # if 10 < z < 25:
-            frame_cgo.extend([cgo.CYLINDER, x1, y1, z1, x2, y2, z2, 0.5, *colour, *colour])
+
+            if ((x1-x2)**2 + (y1-y2)**2 +(z1-z2)**2) >= 0.5 * boxLength**2:
+                cylinderParts = periodicCylinder(x1, y1, z1, x2, y2, z2, boxLength)
+                for part1, part2 in cylinderParts:
+                    frame_cgo.extend([cgo.CYLINDER, *part1, *part2, 0.5, *colour, *colour])
+            if ((x1-x2)**2 + (y1-y2)**2 +(z1-z2)**2) < 0.5 * boxLength**2:
+                frame_cgo.extend([cgo.CYLINDER, x1, y1, z1, x2, y2, z2, 0.5, *colour, *colour])
         # for pore in pores:
         #     x, y, z = pore["pos"]
         #     poreRadius = pore["size"]
